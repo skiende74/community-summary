@@ -52,7 +52,7 @@ function Popup() {
   const generate = (site = false) => run(async () => {
     if (!valid) return;
     const origin = new URL(tab!.url!).origin;
-    if (!await chrome.permissions.request({ origins: [`${origin}/*`] })) throw new Error('사이트 접근 권한이 필요합니다.');
+    if (!await chrome.permissions.contains({ origins: [`${origin}/*`] })) throw new Error('Chrome 확장 메뉴에서 이 사이트의 접근을 허용한 뒤 새로고침해 주세요.');
     setPermitted(true);
     setRule(undefined); setPreview(undefined); setCandidateId(undefined);
     await chrome.scripting.executeScript({ target: { tabId: tab!.id! }, files: ['content.js'] });
@@ -90,9 +90,9 @@ function Popup() {
     {valid && (permitted || builtin) && <ExtractionStatus tabId={tab!.id!} url={tab!.url!} />}
     {saved && <p className="muted">{isSiteRule(saved) ? '사이트 공통 규칙' : '게시판 맞춤 규칙'}{source ? ` · ${source}` : ''}</p>}
     {builtin ? <p>이 커뮤니티는 별도 설정 없이 사용할 수 있어요.</p> : <>
-      {!saved && <p>{permitted ? '공용 규칙이 없거나 맞지 않으면 게시판 맞춤 설정을 진행해 주세요.' : '사이트 접근을 허용하면 공용 규칙을 확인해 적용해요.'}</p>}
+      {!saved && <p>{permitted ? '공용 규칙이 없거나 맞지 않으면 게시판 맞춤 설정을 진행해 주세요.' : '사이트 접근이 제한되어 있어요. Chrome 확장 메뉴에서 이 사이트의 접근을 허용하고 새로고침해 주세요.'}</p>}
       <p className="muted">규칙 생성 시 현재 페이지의 텍스트와 HTML 구조를 서버·OpenAI에 전송합니다. 공개 게시글에서 사용해 주세요.</p>
-      <button disabled={!valid || busy} onClick={() => generate()}>{permitted ? '이 게시판 맞춤 설정' : '사이트 권한 허용 및 적용'}</button>
+      <button disabled={!valid || !permitted || busy} onClick={() => generate()}>{saved || failed ? '이 게시판 맞춤 설정' : '이 게시판 초기 설정'}</button>
       {saved && !isSiteRule(saved) && <button className="link" disabled={busy} onClick={() => generate(true)}>사이트 공통 규칙 만들기</button>}
       {saved && <button className="link" disabled={busy} onClick={() => void run(async () => {
         await request({ type: 'delete-rule', rule: saved, tabId: tab!.id, url: tab!.url });

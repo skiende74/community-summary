@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFileSync } from 'node:fs';
 import { refreshShared } from '../apps/extension/src/Sites_/refresh.ts';
 import { readRules, setDisabled, sourceKey, ruleScope } from '../apps/extension/src/Sites_/rules.ts';
 import { syncScripts } from '../apps/extension/src/Sites_/registration.ts';
@@ -10,7 +11,7 @@ const common: SiteRule = { origin: 'https://auto.example', pathTemplate: '/board
   commentItem: '.row', commentText: '.text', replySelector: null };
 const data: Record<string, any> = {};
 let permitted = true, href = 'https://auto.example/board/park/1', fetches = 0, previews = 0;
-let scripts: any[] = [];
+let scripts: any[] = [{ id: 'approved-sites', matches: ['https://auto.example/*'] }];
 Object.assign(globalThis, { chrome: {
   storage: { local: {
     get: async (key: string | object) => typeof key === 'string' ? { [key]: data[key] } : { ...key, ...data },
@@ -30,9 +31,11 @@ globalThis.fetch = (async (url: string) => {
 }) as any;
 const sender = () => ({ url: href, tab: { id: 1 }, frameId: 0 } as chrome.runtime.MessageSender);
 
-test('로컬 규칙이 없어도 허용된 사이트에 스크립트를 등록하고 공통 규칙 자동 적용', async () => {
+test('이전 동적 스크립트 제거 후 로컬 규칙 없이 공통 규칙 자동 적용', async () => {
   await syncScripts();
-  assert.deepEqual(scripts[0].matches, ['https://auto.example/*']);
+  assert.deepEqual(scripts, []);
+  await syncScripts();
+  assert.deepEqual(scripts, []);
   assert.equal((await refreshShared(sender())).kind, 'ok');
   assert.equal((await readRules()).length, 1);
   assert.equal(data[sourceKey][ruleScope(common)].source, 'shared');
@@ -51,4 +54,12 @@ test('적용 해제와 권한 회수 후 자동으로 다시 적용하지 않는
   permitted = false;
   assert.equal((await refreshShared(sender())).kind, 'error');
   assert.equal(fetches, 1);
+});
+
+test('설치 권한과 정적 주입 범위가 HTTPS 전체이며 API 서버는 제외한다', () => {
+  const manifest = JSON.parse(readFileSync(new URL('../apps/extension/public/manifest.json', import.meta.url), 'utf8'));
+  assert.ok(manifest.host_permissions.includes('https://*/*'));
+  assert.equal(manifest.optional_host_permissions, undefined);
+  assert.deepEqual(manifest.content_scripts[0].matches, ['https://*/*']);
+  assert.ok(manifest.content_scripts[0].exclude_matches.includes('https://community-summary-api.vercel.app/*'));
 });

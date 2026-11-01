@@ -39,7 +39,7 @@ test('사이트 권한과 미리보기 승인 후에만 저장하고, 요약 요
   assert.equal(data['siteRules:v1'], undefined);
   count = 2;
   assert.equal((await send(save)).ok, true);
-  assert.deepEqual(scripts[0].matches, ['https://www.clien.net/*']);
+  assert.deepEqual(scripts, []);
   assert.equal((await send(summarize, page)).result.summary, '테스트 요약');
   assert.equal(fetchCount, 1);
   assert.equal(lastPayload.tone, 'haeyo');
