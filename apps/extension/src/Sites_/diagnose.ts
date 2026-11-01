@@ -1,7 +1,7 @@
 import type { SiteRule } from '@summary/contracts';
 import { inspect } from './Sites';
 
-export type ExtractionStatus = { kind: 'ok' | 'empty' | 'error' | 'disabled' | 'checking'; message: string };
+export type ExtractionStatus = { kind: 'ok' | 'empty' | 'error' | 'disabled' | 'checking' | 'unconfigured'; message: string };
 export function diagnose(rule?: SiteRule): ExtractionStatus {
   try {
     if (rule) {

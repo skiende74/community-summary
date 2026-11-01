@@ -12,7 +12,7 @@ const event = { addListener() {} };
 Object.assign(globalThis, { chrome: {
   runtime: { id: 'test', getURL: (path: string) => `chrome-extension://test/${path}`,
     onInstalled: event, onStartup: event, onMessage: { addListener(fn: any) { listener = fn; } } },
-  permissions: { contains: async () => permitted, onRemoved: event },
+  permissions: { contains: async () => permitted, getAll: async () => ({ origins: [] }), onRemoved: event, onAdded: event },
   tabs: { get: async () => ({ url }), sendMessage: async () => ({ count, url }) },
   storage: { local: { get: async (key: string) => ({ [key]: data[key] }), set: async (value: object) => Object.assign(data, value) } },
   scripting: { getRegisteredContentScripts: async () => scripts,

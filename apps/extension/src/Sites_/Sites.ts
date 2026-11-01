@@ -1,4 +1,4 @@
-import { limits, matchRule, ruleScope, type SiteRule, type SummaryRequest } from '@summary/contracts';
+import { limits, matchRule, ruleScope, specializeRule, type SiteRule, type SummaryRequest } from '@summary/contracts';
 import { extract as dogdrip, findAnchor } from '../Dogdrip_/Dogdrip';
 
 export type Page = { key: string; anchor: HTMLElement; payload: SummaryRequest; clipped: boolean; fingerprint: string };
@@ -37,7 +37,7 @@ export function inspect(rule?: SiteRule): Page | null {
         (item.matches(rule.replySelector) || !!item.querySelector(rule.replySelector)) });
     }
     const payload = { title, body: (bodyNode.textContent || '').trim().slice(0, limits.body), comments };
-    return page(`community-summary:v3:${encodeURIComponent(ruleScope(rule))}:${encodeURIComponent(id)}`, anchor, payload, clipped);
+    return page(`community-summary:v3:${encodeURIComponent(ruleScope(specializeRule(rule, location.href)))}:${encodeURIComponent(id)}`, anchor, payload, clipped);
   } catch { return null; }
 }
 function page(key: string, anchor: HTMLElement, payload: SummaryRequest, clipped: boolean): Page {

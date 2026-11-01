@@ -1,9 +1,9 @@
 import { createRoot, type Root } from 'react-dom/client';
 import { siteRuleSchema, type SiteRule } from '@summary/contracts';
 import { inspect, type Page } from './Sites_/Sites';
-import { readRules, matchRule, rulesKey } from './Sites_/rules';
+import { readRules, matchRule, matchingRules, rulesKey, disabledKey } from './Sites_/rules';
 import { snapshot } from './Sites_/snapshot';
-import { diagnose } from './Sites_/diagnose';
+import { diagnose, type ExtractionStatus } from './Sites_/diagnose';
 import { readSettings, type Settings } from './settings';
 import { SummaryPanel } from './SummaryPanel_/SummaryPanel';
 import styles from './SummaryPanel_/styles.css?inline';
@@ -11,13 +11,25 @@ import styles from './SummaryPanel_/styles.css?inline';
 async function start() {
   const [initialSettings, initialRules] = await Promise.all([readSettings(), readRules()]);
   let settings: Settings = initialSettings, rules: SiteRule[] = initialRules;
+  let disabled = await readRules(disabledKey);
+  let sharedStatus: ExtractionStatus = { kind: 'checking', message: '공용 규칙을 확인하는 중…' };
   let root: Root | undefined, host: HTMLElement | undefined, mounted: Page | null = null;
   const href = location.href;
   let timer = 0, lastSignature = '';
   let stableSince = 0;
   const clear = () => { root?.unmount(); host?.remove(); root = undefined; host = undefined; mounted = null; };
-  const currentRule = () => rules.find(rule => matchRule(rule, location.href));
-  const getPage = () => location.href === href ? inspect(currentRule()) : null;
+  const currentRule = () => {
+    const matched = matchingRules(rules, location.href);
+    return matched.find(rule => inspect(rule)?.payload.comments.length) || matched[0];
+  };
+  const isDisabled = () => disabled.some(rule => matchRule(rule, location.href));
+  const getPage = () => location.href === href && !isDisabled() ? inspect(currentRule()) : null;
+  const checkShared = () => {
+    if (!settings.enabled || /^(www\.)?dogdrip\.net$/.test(location.hostname)) return;
+    void chrome.runtime.sendMessage({ type: 'check-rule' }).then(result => {
+      if (result?.status) sharedStatus = result.status;
+    }).catch(() => { sharedStatus = { kind: 'error', message: '공용 규칙을 확인하지 못했어요. 팝업에서 다시 확인해 주세요.' }; });
+  };
   const tick = () => {
     timer = 0;
     if (!settings.enabled) { clear(); return; }
@@ -44,13 +56,18 @@ async function start() {
   new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, characterData: true });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
-    if ('enabled' in changes || 'expanded' in changes) void readSettings().then(value => { settings = value; schedule(); });
+    if ('enabled' in changes || 'expanded' in changes) void readSettings().then(value => {
+      settings = value; schedule(); if ('enabled' in changes && value.enabled) checkShared();
+    });
     if (rulesKey in changes) void readRules().then(value => { rules = value; clear(); schedule(); });
+    if (disabledKey in changes) void readRules(disabledKey).then(value => { disabled = value; clear(); schedule(); });
   });
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
     if (message?.type === 'extraction-status') respond({ url: location.href, status: !settings.enabled
       ? { kind: 'disabled', message: '설정에서 요약 기능을 켜면 사용할 수 있어요.' }
-      : location.href !== href ? { kind: 'error', message: '게시글을 새로고침해 주세요.' } : diagnose(currentRule()) });
+      : location.href !== href ? { kind: 'error', message: '게시글을 새로고침해 주세요.' }
+      : isDisabled() ? { kind: 'disabled', message: '이 게시판의 자동 적용을 해제했어요.' }
+      : !currentRule() && !/^(www\.)?dogdrip\.net$/.test(location.hostname) ? sharedStatus : diagnose(currentRule()) });
     if (message?.type === 'rule-ready') respond({ url: location.href });
     if (message?.type === 'snapshot') respond(snapshot());
     if (message?.type === 'preview-rule') {
@@ -61,7 +78,7 @@ async function start() {
     }
   });
   schedule();
-  if (settings.enabled && currentRule()) void chrome.runtime.sendMessage({ type: 'check-rule' }).catch(() => {});
+  checkShared();
 }
 const scope = globalThis as typeof globalThis & { communitySummaryStarted?: boolean };
 if (!scope.communitySummaryStarted) { scope.communitySummaryStarted = true; void start(); }

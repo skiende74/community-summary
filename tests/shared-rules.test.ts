@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { lookupShared } from '../apps/extension/src/Sites_/shared.ts';
+import { lookupShared, lookupCandidates } from '../apps/extension/src/Sites_/shared.ts';
 import type { SiteRule } from '../packages/contracts/src/index.ts';
 
-const rule: SiteRule = { origin: 'https://example.com', pathTemplate: '/board/{id}', idQuery: null,
+const rule: SiteRule = { origin: 'https://example.com', pathTemplate: '/board/{board}/{id}', idQuery: null,
   requiredQuery: [], title: 'h1', body: 'article', commentsRoot: '.comments', commentItem: '.row', commentText: '.text', replySelector: null };
 const data: Record<string, any> = {};
-let requests = 0, failure = false, found: SiteRule | null = rule;
+let requests = 0, failure = false, found: SiteRule[] = [rule];
 Object.assign(globalThis, { chrome: { storage: { local: {
   get: async (key: string) => ({ [key]: structuredClone(data[key]) }),
   set: async (value: object) => Object.assign(data, structuredClone(value)),
@@ -15,39 +15,39 @@ globalThis.fetch = (async () => {
   requests++;
   await new Promise(resolve => setTimeout(resolve, 5));
   if (failure) throw new Error('offline');
-  return { ok: true, json: async () => ({ rule: found }) };
+  return { ok: true, json: async () => ({ rule: found[0] || null, rules: found }) };
 }) as any;
-test('게시판별 24시간 제한, 동시 요청 합치기, 명시적 설정은 즉시 조회', async () => {
-  const results = await Promise.all([lookupShared('https://example.com/board/1', rule), lookupShared('https://example.com/board/2', rule)]);
+
+test('사이트당 24시간 한 번 조회하고 다른 게시판도 캐시로 적용, 수동 조회는 갱신', async () => {
+  const results = await Promise.all([lookupShared('https://example.com/board/park/1'), lookupShared('https://example.com/board/news/2')]);
   assert.equal(requests, 1);
   assert.deepEqual(results, [rule, rule]);
-  await lookupShared('https://example.com/board/3', rule);
+  await lookupShared('https://example.com/board/new/3');
   assert.equal(requests, 1);
-  await lookupShared('https://example.com/board/3', rule, true);
+  await lookupShared('https://example.com/board/park/3', undefined, true);
   assert.equal(requests, 2);
-  for (const check of Object.values(data['siteRuleChecks:v1']) as any[]) check.at -= 86400001;
-  await lookupShared('https://example.com/board/4', rule);
+  data['siteRuleChecks:v2']['https://example.com'].at -= 86400001;
+  await lookupShared('https://example.com/board/park/4');
   assert.equal(requests, 3);
 });
-test('규칙 없음과 네트워크 실패도 반복 자동 조회를 막는다', async () => {
-  const other = { ...rule, pathTemplate: '/other/{id}' };
-  found = null;
-  assert.equal(await lookupShared('https://example.com/other/1', other), null);
-  const afterMissing = requests;
-  await lookupShared('https://example.com/other/2', other);
-  assert.equal(requests, afterMissing);
-  failure = true;
-  const third = { ...rule, pathTemplate: '/third/{id}' };
-  await assert.rejects(lookupShared('https://example.com/third/1', third));
-  const afterFailure = requests;
-  await lookupShared('https://example.com/third/2', third);
-  assert.equal(requests, afterFailure);
-  failure = false; found = rule;
-});
-test('다른 게시판을 동시에 조회해도 조회 시각이 유실되지 않음', async () => {
-  const a = { ...rule, pathTemplate: '/a/{id}' }, b = { ...rule, pathTemplate: '/b/{id}' };
-  await Promise.all([lookupShared('https://example.com/a/1', a), lookupShared('https://example.com/b/1', b)]);
+test('규칙 없음과 네트워크 실패도 다른 게시글에서 반복 자동 조회하지 않는다', async () => {
+  found = [];
+  assert.equal(await lookupShared('https://missing.example/board/1'), null);
   const before = requests;
-  await Promise.all([lookupShared('https://example.com/a/2', a), lookupShared('https://example.com/b/2', b)]);
+  await lookupShared('https://missing.example/another/2');
+  assert.equal(requests, before);
+  failure = true;
+  await assert.rejects(lookupShared('https://offline.example/board/1'));
+  const afterFailure = requests;
+  assert.equal(await lookupShared('https://offline.example/other/2'), null);
+  assert.equal(requests, afterFailure);
+  failure = false;
+});
+test('게시판 예외를 먼저 반환하고 사이트 공통을 대안으로 유지', async () => {
+  const specific = { ...rule, pathTemplate: '/board/park/{id}' };
+  found = [rule, specific];
+  assert.deepEqual(await lookupCandidates('https://example.com/board/park/5', true), [specific, rule]);
+  const before = requests;
+  assert.deepEqual(await lookupCandidates('https://example.com/board/news/5'), [rule]);
   assert.equal(requests, before);
 });

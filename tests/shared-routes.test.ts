@@ -21,3 +21,18 @@ test('공용 조회와 승인: 잘못된 입력 거절, 없는 규칙과 저장�
     assert.equal((await post('/site-rules/lookup', { url: 'https://example.com/123' })).statusCode, 503);
   } finally { await app.close(); }
 });
+
+test('새 확장에는 공통·게시판 묶음 제공, 이전 확장은 기존 조회 유지', async () => {
+  const common = { origin: 'https://example.com', pathTemplate: '/b/{board}/{id}', idQuery: null,
+    requiredQuery: [], title: 'h1', body: 'article', commentsRoot: '.comments', commentItem: '.row', commentText: '.text', replySelector: null };
+  const board = { ...common, pathTemplate: '/b/news/{id}' };
+  const app = Fastify();
+  registerSharedRules(app, { find: async () => board, list: async () => [common, board],
+    stage: async () => '', confirm: async () => false });
+  try {
+    const url = 'https://example.com/b/news/1';
+    const post = (payload: object) => app.inject({ method: 'POST', url: '/site-rules/lookup', payload });
+    assert.deepEqual((await post({ url })).json(), { rule: board });
+    assert.deepEqual((await post({ url, includeSiteRules: true })).json(), { rule: board, rules: [common, board] });
+  } finally { await app.close(); }
+});

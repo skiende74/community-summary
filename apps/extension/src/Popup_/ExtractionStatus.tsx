@@ -23,7 +23,8 @@ export function ExtractionStatus({ tabId, url }: { tabId: number; url: string })
   }, [tabId, url]);
   return <div className={`extraction-status ${state.kind}`} role="status" aria-live="polite">
     <strong>{state.kind === 'ok' ? '댓글 추출 정상' : state.kind === 'error' ? '댓글 추출 확인 필요'
-      : state.kind === 'empty' ? '텍스트 댓글 없음' : state.kind === 'disabled' ? '요약 기능 꺼짐' : '상태 확인 중'}</strong>
+      : state.kind === 'empty' ? '텍스트 댓글 없음' : state.kind === 'disabled' ? '자동 적용 꺼짐'
+      : state.kind === 'unconfigured' ? '게시판 설정 필요' : '상태 확인 중'}</strong>
     <p>{state.message}</p>
   </div>;
 }

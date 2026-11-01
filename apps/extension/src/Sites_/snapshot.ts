@@ -1,3 +1,4 @@
+import { pageLinks, publicUrl } from './pageLinks';
 const ignored = 'script,style,noscript,iframe,svg,form,input,textarea,select,[contenteditable],nav,community-summary,[hidden],[aria-hidden="true"]';
 export function snapshot() {
   let remaining = 80000;
@@ -19,8 +20,5 @@ export function snapshot() {
     return html + take(`</${tag}>`);
   };
   const html = walk(document.body, 0);
-  const url = new URL(location.href);
-  for (const key of [...url.searchParams.keys()]) if (/token|auth|session|password|key/i.test(key)) url.searchParams.delete(key);
-  url.hash = '';
-  return { url: url.href, html };
+  return { url: publicUrl(location.href), html, links: pageLinks() };
 }

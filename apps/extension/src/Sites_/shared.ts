@@ -1,47 +1,56 @@
-import { ruleLookupResponseSchema, ruleScope, type SiteRule } from '@summary/contracts';
+import { matchingRules, ruleLookupResponseSchema, ruleScope, type SiteRule } from '@summary/contracts';
 import { apiUrl } from '../config';
+import { publicUrl } from './pageLinks';
 
-const checksKey = 'siteRuleChecks:v1';
+const checksKey = 'siteRuleChecks:v2';
 const day = 24 * 60 * 60 * 1000;
-const pending = new Map<string, Promise<SiteRule | null>>();
-type Check = { at: number; rule: SiteRule | null };
+type Check = { at: number; rules: SiteRule[] };
+const pending = new Map<string, Promise<SiteRule[]>>();
 let writes = Promise.resolve();
-async function remember(key: string, rule: SiteRule | null) {
+async function remember(origin: string, rules: SiteRule[], at = Date.now()) {
   writes = writes.catch(() => {}).then(async () => {
     const stored = (await chrome.storage.local.get(checksKey))[checksKey];
     const entries = (stored && typeof stored === 'object' ? stored : {}) as Record<string, Check>;
-    entries[key] = { at: Date.now(), rule };
-    const limited = Object.fromEntries(Object.entries(entries).sort((a, b) =>
-      b[1].at - a[1].at).slice(0, 256));
-    await chrome.storage.local.set({ [checksKey]: limited });
+    entries[origin] = { at, rules };
+    await chrome.storage.local.set({ [checksKey]: Object.fromEntries(Object.entries(entries)
+      .sort((a, b) => b[1].at - a[1].at).slice(0, 100)) });
   });
   return writes;
 }
-export const rememberRule = (rule: SiteRule) => remember(ruleScope(rule), rule);
-export async function ruleRequest(path: 'lookup' | 'confirm', payload: object) {
+export async function rememberRule(rule: SiteRule) {
+  const checks = (await chrome.storage.local.get(checksKey))[checksKey] as Record<string, Check> | undefined;
+  const check = checks?.[rule.origin];
+  await remember(rule.origin, [...(check?.rules || []).filter(r => ruleScope(r) !== ruleScope(rule)), rule].slice(-100), check?.at || 0);
+}
+export async function ruleRequest(path: 'lookup' | 'confirm', payload: { url: string; [key: string]: unknown }) {
   const response = await fetch(`${apiUrl}/site-rules/${path}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Community-Summary': '1' },
-    body: JSON.stringify(payload), signal: AbortSignal.timeout(10000),
+    body: JSON.stringify({ ...payload, url: publicUrl(payload.url) }), signal: AbortSignal.timeout(10000),
   });
   if (!response.ok) throw new Error('공용 규칙 서버에 연결하지 못했습니다.');
   return response.json();
 }
-export async function lookupShared(url: string, local?: SiteRule, force = false): Promise<SiteRule | null> {
-  const key = local ? ruleScope(local) : url;
-  const running = pending.get(key);
-  if (running) return running;
-  const work = (async () => {
-    const checks = (await chrome.storage.local.get(checksKey))[checksKey] as Record<string, Check> | undefined;
-    const checked = checks?.[key] as Check | undefined;
-    const elapsed = Date.now() - (checked?.at || 0);
-    if (!force && checked && elapsed >= 0 && elapsed < day) return null;
-    // 실패해도 재방문/동시 탭에서 서버 요청이 반복되지 않게 먼저 기록한다.
-    await remember(key, null);
-    const rule = ruleLookupResponseSchema.parse(await ruleRequest('lookup', { url })).rule;
-    await remember(key, rule);
-    if (rule) await remember(ruleScope(rule), rule);
-    return rule;
-  })();
-  pending.set(key, work);
-  try { return await work; } finally { pending.delete(key); }
+export async function lookupCandidates(url: string, force = false): Promise<SiteRule[]> {
+  const origin = new URL(url).origin;
+  let work = pending.get(origin);
+  if (!work) {
+    work = (async () => {
+      const checks = (await chrome.storage.local.get(checksKey))[checksKey] as Record<string, Check> | undefined;
+      const checked = checks?.[origin];
+      const elapsed = Date.now() - (checked?.at || 0);
+      if (!force && checked && elapsed >= 0 && elapsed < day) return checked.rules || [];
+      // 조회 실패도 하루 동안 반복하지 않는다. 기존 캐시는 유지한다.
+      await remember(origin, checked?.rules || []);
+      const data = ruleLookupResponseSchema.parse(await ruleRequest('lookup', { url, includeSiteRules: true }));
+      const rules = (data.rules || (data.rule ? [data.rule] : [])).filter(rule => rule.origin === origin);
+      await remember(origin, rules);
+      return rules;
+    })();
+    pending.set(origin, work);
+    void work.finally(() => pending.delete(origin)).catch(() => {});
+  }
+  return matchingRules(await work, url);
+}
+export async function lookupShared(url: string, _local?: SiteRule, force = false): Promise<SiteRule | null> {
+  return (await lookupCandidates(url, force))[0] || null;
 }
