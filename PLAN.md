@@ -1,7 +1,7 @@
 # 커뮤니티 댓글 요약 구현 계획
 
 ## 범위와 스택
-- 개드립 게시글 한 곳부터 지원한다. 첫 버전은 현재 로드된 댓글을 대상으로 한다.
+- 커뮤니티 게시글 한 곳부터 지원한다. 첫 버전은 현재 로드된 댓글을 대상으로 한다.
 - 확장기능: TypeScript + React + Vite + Manifest V3.
 - 백엔드: Node.js + Fastify + TypeScript. 공통 입력·출력 검증은 Zod로 관리한다.
 - LLM은 OpenAI Responses API의 gpt-6-luna, reasoning.effort=low를 사용한다.
@@ -26,7 +26,7 @@ CommunitySummary_/
    │  ├─ package.json
    │  ├─ tsconfig.json
    │  ├─ vite.config.ts            # content/background 빌드 구성
-   │  ├─ public/manifest.json      # 개드립 접근·백엔드 통신 권한
+   │  ├─ public/manifest.json      # 커뮤니티 접근·백엔드 통신 권한
    │  └─ src/
    │     ├─ content.tsx            # 추출기 연결·Shadow DOM·React 마운트
    │     ├─ background.ts          # 메시지 검증·고정 백엔드 호출

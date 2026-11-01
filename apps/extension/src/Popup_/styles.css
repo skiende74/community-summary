@@ -15,3 +15,7 @@ section { border-top: 1px solid #dae5f4; margin-top: 16px; padding-top: 10px; }
 h2 { font-size: 14px; }
 ul { padding-left: 18px; }
 li { margin: 8px 0; overflow-wrap: anywhere; }
+.extraction-status { padding: 10px 12px; margin: 12px 0; border-radius: 8px; background: #f0f4fa; border-left: 3px solid #7a8da9; }
+.extraction-status p { margin: 4px 0 0; }
+.extraction-status.ok { background: #edf7f2; border-color: #36815c; }
+.extraction-status.error { background: #fff3ed; border-color: #c17640; }

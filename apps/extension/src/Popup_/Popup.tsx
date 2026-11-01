@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ruleResponseSchema, type SiteRule } from '@summary/contracts';
 import { readRules, matchRule } from '../Sites_/rules';
 import './styles.css';
+import { ExtractionStatus } from './ExtractionStatus';
 
 type Preview = { title: string; count: number; comments: string[]; url: string };
 async function request(message: object) {
@@ -65,8 +66,9 @@ function Popup() {
   return <main>
     <header><strong>댓글 요약</strong><button className="link" onClick={() => void chrome.runtime.openOptionsPage()}>설정</button></header>
     <p className="site">{valid ? new URL(tab!.url!).hostname : 'HTTPS 게시글에서 열어 주세요.'}</p>
-    {builtin ? <p>개드립은 기본 지원합니다.</p> : <>
-      <p>{saved ? '이 게시판에 요약이 적용되어 있어요.' : '이 게시판의 댓글 추출 규칙을 만들어요.'}</p>
+    {valid && (saved || builtin) && <ExtractionStatus tabId={tab!.id!} url={tab!.url!} />}
+    {builtin ? <p>이 커뮤니티는 별도 설정 없이 사용할 수 있어요.</p> : <>
+      {!saved && <p>이 게시판의 댓글 추출 규칙을 만들어요.</p>}
       <p className="muted">규칙 생성 시 현재 페이지의 텍스트와 HTML 구조를 서버·OpenAI에 전송합니다. 공개 게시글에서 사용해 주세요.</p>
       <button disabled={!valid || busy} onClick={generate}>{saved ? '규칙 다시 만들기' : '이 게시판에 적용'}</button>
       {saved && <button className="link" disabled={busy} onClick={() => void run(async () => {

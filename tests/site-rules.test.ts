@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { parseHTML } from 'linkedom';
 import { matchRule, siteRuleSchema } from '../packages/contracts/src/index.ts';
 import { inspect } from '../apps/extension/src/Sites_/Sites.ts';
+import { diagnose } from '../apps/extension/src/Sites_/diagnose.ts';
 import { snapshot } from '../apps/extension/src/Sites_/snapshot.ts';
 import { readSummary, saveSummary } from '../apps/extension/src/SummaryPanel_/storage.ts';
 
@@ -19,6 +20,17 @@ const fixture = '<h3 class="post_subject"><span>제목</span><a>6</a></h3><div c
   '<div class="post_comment"><div class="comment_head">댓글</div><div class="comment">' +
   '<div class="comment_row"><span>닉네임</span><button>신고</button><div class="comment_view">첫 댓글</div></div>' +
   '<div class="comment_row reply"><div class="comment_view">답글</div></div></div></div>';
+
+test('팝업 진단은 정상·제목 중복·텍스트 없음·잘못된 선택자를 구분', () => {
+  mount(fixture);
+  assert.equal(diagnose(rule).kind, 'ok');
+  mount(fixture + '<h3 class="post_subject"><span></span></h3>');
+  assert.equal(diagnose(rule).kind, 'error');
+  assert.match(diagnose(rule).message, /제목이 여러 개/);
+  mount(fixture.replace('첫 댓글', '<img>').replace('답글', '<img>'));
+  assert.equal(diagnose(rule).kind, 'empty');
+  assert.equal(diagnose({ ...rule, title: '[' }).kind, 'error');
+});
 
 test('게시판/도메인 구분, 정렬 쿼리 무시, 목록 제외', () => {
   assert.equal(matchRule(rule, url), '19285969');

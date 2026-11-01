@@ -4,6 +4,7 @@ import { readRules, saveRule, matchRule, ruleScope, rulesKey } from './Sites_/ru
 import { syncScripts } from './Sites_/registration';
 import { lookupShared, ruleRequest, rememberRule } from './Sites_/shared';
 import { refreshShared } from './Sites_/refresh';
+import { ruleHeaders } from './Admin_/Admin';
 
 chrome.runtime.onInstalled.addListener(() => { void syncScripts(); });
 chrome.runtime.onStartup.addListener(() => { void syncScripts(); });
@@ -51,7 +52,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
       const payload = summarize ? requestSchema.parse(message.payload) : ruleRequestSchema.parse(message.payload);
       const response = await fetch(`${apiUrl}/${summarize ? 'summarize' : 'site-rules'}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Community-Summary': '1',
-          'X-Summary-Refresh': message.refresh === true ? '1' : '0' },
+          'X-Summary-Refresh': message.refresh === true ? '1' : '0', ...(summarize ? {} : await ruleHeaders()) },
         body: JSON.stringify(payload), signal: AbortSignal.timeout(summarize ? 26_000 : 30_000),
       });
       const data = await response.json();

@@ -3,6 +3,7 @@ import { siteRuleSchema, type SiteRule } from '@summary/contracts';
 import { inspect, type Page } from './Sites_/Sites';
 import { readRules, matchRule, rulesKey } from './Sites_/rules';
 import { snapshot } from './Sites_/snapshot';
+import { diagnose } from './Sites_/diagnose';
 import { readSettings, type Settings } from './settings';
 import { SummaryPanel } from './SummaryPanel_/SummaryPanel';
 import styles from './SummaryPanel_/styles.css?inline';
@@ -47,6 +48,9 @@ async function start() {
     if (rulesKey in changes) void readRules().then(value => { rules = value; clear(); schedule(); });
   });
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+    if (message?.type === 'extraction-status') respond({ url: location.href, status: !settings.enabled
+      ? { kind: 'disabled', message: '설정에서 요약 기능을 켜면 사용할 수 있어요.' }
+      : location.href !== href ? { kind: 'error', message: '게시글을 새로고침해 주세요.' } : diagnose(currentRule()) });
     if (message?.type === 'rule-ready') respond({ url: location.href });
     if (message?.type === 'snapshot') respond(snapshot());
     if (message?.type === 'preview-rule') {

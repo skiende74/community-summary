@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { readSettings, type Settings } from './settings';
 import './options.css';
-import { apiUrl } from './config';
+import { AdminSettings } from './Admin_/AdminSettings';
 
 function Options() {
   const [settings, setSettings] = useState<Settings>();
@@ -22,8 +22,8 @@ function Options() {
   }
   return <main>
     <span className="eyebrow">COMMUNITY SUMMARY</span>
-    <h1>댓글을 읽기 전, 반응부터.</h1>
-    <p>개드립 댓글 반응을 1~4줄로 정리해요.</p>
+    <h1>댓글 반응을 요약해, 한눈에 편하게.</h1>
+    <p>커뮤니티 댓글의 다양한 반응을 짧게 정리해 드려요.</p>
     {settings && <section>
       <label><span>요약 기능 사용<small>댓글 상단에 요약 카드를 표시해요.</small></span>
         <input type="checkbox" checked={settings.enabled} disabled={saving}
@@ -33,7 +33,7 @@ function Options() {
           onChange={e => void change('expanded', e.target.checked)} /></label>
     </section>}
     <p role="status">{status}</p>
-    <p>요약 서버: <code>{apiUrl}</code></p>
+    <AdminSettings />
   </main>;
 }
 createRoot(document.getElementById('root')!).render(<Options />);
