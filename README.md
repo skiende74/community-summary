@@ -15,7 +15,7 @@
 
 ### 14초 사용법
 
-[![커뮤니티 댓글 요약 — 14초 사용법](Demo_/quick-start-v2.gif)](Demo_/quick-start-v2.mp4)
+https://github.com/user-attachments/assets/17b00149-6f41-415c-a8e7-77950377f67a
 
 [고화질 영상 보기 · MP4, 14초](Demo_/quick-start-v2.mp4)
 
