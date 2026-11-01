@@ -1,0 +1,17 @@
+:root { font: 13px/1.6 system-ui, sans-serif; color: #24334b; background: #fff; }
+body { margin: 0; width: 360px; }
+main { padding: 18px; }
+header { display: flex; justify-content: space-between; align-items: center; }
+header strong { font-size: 16px; }
+p { margin: 10px 0; }
+.site { color: #2862b7; font-weight: 600; }
+.muted, .scope { color: #67758a; font-size: 12px; }
+.scope { overflow-wrap: anywhere; }
+button { border: 0; border-radius: 7px; background: #2862b7; color: white; padding: 8px 12px; cursor: pointer; font: inherit; }
+button:disabled { opacity: .5; cursor: default; }
+button.link { color: #42618b; background: transparent; }
+button:focus-visible { outline: 2px solid #2862b7; outline-offset: 2px; }
+section { border-top: 1px solid #dae5f4; margin-top: 16px; padding-top: 10px; }
+h2 { font-size: 14px; }
+ul { padding-left: 18px; }
+li { margin: 8px 0; overflow-wrap: anywhere; }

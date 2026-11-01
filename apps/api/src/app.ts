@@ -3,6 +3,7 @@ import rateLimit from '@fastify/rate-limit';
 import { config } from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { registerSummarize } from './Summarize_/Summarize.js';
+import { registerSiteRules } from './SiteRules_/SiteRules.js';
 
 if (!process.env.VERCEL) config({ path: fileURLToPath(new URL('../.env', import.meta.url)), quiet: true });
 const app = Fastify({ logger: false, bodyLimit: 400_000 });
@@ -20,5 +21,6 @@ app.setErrorHandler((error, _request, reply) => {
   reply.code(status).send({ error: status === 429 ? '잠시 후 다시 시도해 주세요.' : '요청을 처리하지 못했습니다.' });
 });
 registerSummarize(app);
+registerSiteRules(app);
 app.get('/health', async () => ({ status: 'ok' }));
 export default app;

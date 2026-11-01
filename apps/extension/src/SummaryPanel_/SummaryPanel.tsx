@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { Settings } from '../settings';
 import { useSummary } from './useSummary';
 import { Icon } from './Icon';
+import type { Page } from '../Sites_/Sites';
 
-export function SummaryPanel({ settings }: { settings: Settings }) {
+export function SummaryPanel({ settings, page, getPage }: { settings: Settings; page: Page; getPage: () => Page | null }) {
   const [open, setOpen] = useState(settings.expanded);
   const [near, setNear] = useState(false);
   const [above, setAbove] = useState(false);
   const panel = useRef<HTMLElement>(null);
-  const summary = useSummary();
+  const summary = useSummary(page, getPage);
   useEffect(() => {
     const node = panel.current;
     if (!node) return;
@@ -32,7 +33,7 @@ export function SummaryPanel({ settings }: { settings: Settings }) {
       <button className="heading" aria-expanded={open} aria-controls="summary-body" onClick={() => setOpen(value => !value)}>
         댓글 반응 요약
       </button>
-      {open && <button className="icon-button" disabled={summary.status === 'loading'}
+      {open && <button className="icon-button" disabled={summary.status === 'loading' || summary.status === 'restoring'}
         title={summary.status === 'error' ? '다시 시도' : '요약 갱신'}
         aria-label={summary.status === 'error' ? '다시 시도' : '요약 갱신'} onClick={() => void summary.run(true)}>
         <Icon name="refresh" spinning={summary.status === 'loading'} />
@@ -45,6 +46,7 @@ export function SummaryPanel({ settings }: { settings: Settings }) {
       {open && <div id="summary-body" className="body">
         <div role="status" aria-live="polite" aria-busy={summary.status === 'loading'}>
           {summary.status === 'idle' && '댓글 반응을 요약할 준비가 됐어요.'}
+          {summary.status === 'restoring' && <span className="muted">저장된 요약 확인 중…</span>}
           {summary.status === 'loading' && <span className="muted">요약 중…</span>}
           {summary.status === 'empty' && '현재 로드된 텍스트 댓글이 없어요.'}
           {summary.status === 'done' && <p className="summary">{summary.text}</p>}

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+export * from './rules.js';
 
 export const limits = { comments: 300, comment: 2000, body: 6000, total: 60000 };
 export const requestSchema = z.object({

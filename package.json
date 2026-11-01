@@ -1,11 +1,21 @@
 {
-  "name": "community-summary", "private": true, "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
+  "name": "community-summary",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev:api": "npm run build:contracts && npm run dev -w @summary/api",
     "build:contracts": "tsc -p packages/contracts",
     "build": "npm run build:contracts && npm run build -w @summary/extension",
-    "typecheck": "tsc -p apps/api && tsc -p apps/extension"
+    "typecheck": "tsc -p apps/api && tsc -p apps/extension",
+    "test": "node --import tsx --test tests/*.test.ts"
   },
-  "devDependencies": { "typescript": "^5.9.0", "@types/node": "^22.0.0" }
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "linkedom": "^0.18.15",
+    "typescript": "^5.9.0"
+  }
 }

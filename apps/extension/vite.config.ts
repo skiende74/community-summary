@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
         name: 'CommunitySummary', formats: ['iife'], fileName: () => `${mode}.js`,
       },
       // React's production branch must be resolved in standalone content bundles.
-    } : { rollupOptions: { input: 'options.html' } },
+    } : { rollupOptions: { input: ['options.html', 'popup.html'] } },
     define: { 'process.env.NODE_ENV': JSON.stringify('production') },
   };
 });
