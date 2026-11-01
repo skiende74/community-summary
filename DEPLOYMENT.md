@@ -18,6 +18,11 @@
 Preview에는 현재 API 키가 없으므로 실제 LLM 호출은 Production에서 확인합니다.
 환경변수를 바꾼 경우에는 Vercel에서 직접 재배포해야 합니다.
 
+공용 게시판 규칙은 Upstash Redis 무료 플랜 `community-summary-rules`에 저장합니다.
+유료 자동 전환은 비활성화했습니다. Vercel Marketplace가 Production에 주입하는
+`KV_REST_API_URL`/`KV_REST_API_TOKEN`을 사용합니다 (`UPSTASH_REDIS_REST_*` 이름도 지원).
+저장소 키는 확장기능과 GitHub에 포함하지 않습니다. 조회·저장 장애 시 기존 로컬 규칙을 유지합니다.
+
 ## 로컬 저장소 구조
 
 현재 로컬 `CommunitySummary_`는 상위 `Playground` Git 저장소의 하위 폴더입니다.

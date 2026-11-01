@@ -47,6 +47,7 @@ async function start() {
     if (rulesKey in changes) void readRules().then(value => { rules = value; clear(); schedule(); });
   });
   chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+    if (message?.type === 'rule-ready') respond({ url: location.href });
     if (message?.type === 'snapshot') respond(snapshot());
     if (message?.type === 'preview-rule') {
       const parsed = siteRuleSchema.safeParse(message.rule);
@@ -56,6 +57,7 @@ async function start() {
     }
   });
   schedule();
+  if (settings.enabled && currentRule()) void chrome.runtime.sendMessage({ type: 'check-rule' }).catch(() => {});
 }
 const scope = globalThis as typeof globalThis & { communitySummaryStarted?: boolean };
 if (!scope.communitySummaryStarted) { scope.communitySummaryStarted = true; void start(); }
