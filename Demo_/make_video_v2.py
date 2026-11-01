@@ -1,11 +1,11 @@
-"""10-second v0.2.1 walkthrough: permission, shared rules, summary, tone."""
+"""14-second v0.2.1 walkthrough: permission, shared rules, summary, tone."""
 from pathlib import Path
 import math
 import subprocess
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent
-W, H, FPS = 1280, 720, 30
+W, H, FPS, DURATION = 1280, 720, 30, 14
 BLUE, INK, MUTED = '#2862b7', '#24334b', '#67758a'
 FONTS = {(size, bold): ImageFont.truetype(f'C:/Windows/Fonts/malgun{"bd" if bold else ""}.ttf', size)
          for size in (13, 14, 16, 18, 20, 22, 24, 28, 32, 38) for bold in (False, True)}
@@ -35,11 +35,11 @@ def frame(t):
     step = 0 if t < 2.5 else 1 if t < 4.7 else 2 if t < 7.2 else 3
     im.paste(LOGO.resize((44, 44), Image.Resampling.LANCZOS), (54, 32), LOGO.resize((44, 44), Image.Resampling.LANCZOS))
     text(112, 39, '커뮤니티 댓글 요약', 24, BLUE, True)
-    text(1016, 47, '10초 사용법 · 0.2.1', 16, MUTED)
+    text(1016, 47, '빠른 사용법 · 0.2.1', 16, MUTED)
     text(56, 179, f'0{step+1}', 38, BLUE, True)
     text(56, 262, STEPS[step][0], 32, INK, True)
     text(56, 311, STEPS[step][1], 32, INK, True)
-    text(56, 391, STEPS[step][2], 16, MUTED)
+    text(56, 391, '확장 아이콘 → 설정' if 7.2 <= t < 10 else STEPS[step][2], 16, MUTED)
     for i in range(4):
         box((56+i*86, 464, 124+i*86, 470), BLUE if i <= step else '#dbe2ec', 3)
     box((476, 117, 1226, 617), '#e2e8f2', 22)
@@ -47,7 +47,7 @@ def frame(t):
     box((480, 119, 1210, 169), '#f5f7fb', 10)
     text(500, 132, '←  →', 20, MUTED)
     box((584, 128, 1110, 159), '#e8edf5', 15)
-    text(602, 134, '커뮤니티 게시글' if step < 3 else '댓글 요약 · 설정', 14, MUTED)
+    text(602, 134, '커뮤니티 게시글' if t < 10 else '댓글 요약 · 설정', 14, MUTED)
     logo = LOGO.resize((32, 32), Image.Resampling.LANCZOS)
     im.paste(logo, (1144, 128), logo)
     text(511, 191, '자유게시판', 16, BLUE, True)
@@ -55,7 +55,7 @@ def frame(t):
     text(511, 279, '생각이 달라도 서로 존중하며 이야기하고 싶어요.', 18, MUTED)
     d.line((511, 321, 1180, 321), fill='#e8edf5', width=2)
     top = 352
-    if step == 2:
+    if step == 2 or 7.2 <= t < 10:
         box((508, 342, 1182, 459), '#f8f9fd', 10, '#dce2f2')
         box((509, 350, 513, 451), '#7185c7', 2)
         text(529, 354, '댓글 반응 요약', 18, '#5268a6', True)
@@ -65,14 +65,14 @@ def frame(t):
         text(529, 393, '서로 설득하기는 어렵다는 반응이 많아요.', 20)
         text(529, 426, '감정이 격해지면 잠시 쉬자는 의견도 있어요.', 20)
         top = 481
-        if t > 6:
+        if 6 < t < 6.8:
             box((1007, 308, 1167, 339), '#343538', 6)
             text(1025, 313, '요약 갱신', 14, 'white')
             cursor(1120, 369)
     text(511, top, '댓글 6', 18, INK, True)
     text(511, top+43, '서로 존중하면서 대화하면 좋겠네요.', 18, MUTED)
     text(511, top+83, '잠시 쉬었다 이야기하는 것도 방법이죠.', 18, MUTED)
-    if step < 2 and t > .3:
+    if (step < 2 and t > .3) or 8 <= t < 10:
         box((678, 172, 1199, 586), 'white', 14, '#dce2f2')
         text(701, 190, '댓글 요약', 22, INK, True)
         text(1135, 194, '설정', 16, BLUE)
@@ -95,9 +95,15 @@ def frame(t):
             text(701, 404, '사이트 공통 규칙 · 공용 규칙에서 적용', 16, MUTED)
             button((701, 454, 979, 504), '이 게시판 맞춤 설정')
             text(701, 537, '사이트 공통 규칙을 적용했어요.', 18, BLUE)
+        if 8 <= t < 10:
+            box((1120, 184, 1180, 225), '#e9f0fc', 7)
+            text(1135, 194, '설정', 16, BLUE)
+            cursor(1152, 211, t > 9.1)
     if t <= .3:
         cursor(1159, 145, True)
-    if step == 3:
+    if 7.2 <= t < 8:
+        cursor(1159, 145, t > 7.6)
+    if t >= 10:
         box((490, 179, 1200, 590), '#f4f6fb', 10)
         text(521, 201, '댓글 반응을 요약해, 한눈에 편하게.', 24, INK, True)
         box((520, 259, 1170, 551), 'white', 12, '#dce2ee')
@@ -111,7 +117,7 @@ def frame(t):
         cursor(728, 441)
     text(56, 650, '예시 UI · 공용 규칙이 등록된 사이트 기준 · 대기 시간 단축', 14, MUTED)
     box((56, 687, 1220, 691), '#dbe2ec', 2)
-    box((56, 687, 56+max(2, 1164*t/10), 691), BLUE, 2)
+    box((56, 687, 56+max(2, 1164*t/DURATION), 691), BLUE, 2)
     return im
 
 
@@ -119,7 +125,7 @@ if __name__ == '__main__':
     output = ROOT / 'quick-start-v2.mp4'
     process = subprocess.Popen(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}',
         '-r', str(FPS), '-i', '-', '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '19', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(output)], stdin=subprocess.PIPE)
-    for n in range(FPS*10):
+    for n in range(FPS*DURATION):
         process.stdin.write(frame(n/FPS).tobytes())
     process.stdin.close()
     if process.wait():
