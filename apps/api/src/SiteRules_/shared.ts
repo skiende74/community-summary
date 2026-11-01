@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { matchingRules, ruleLookupSchema, ruleConfirmSchema } from '@summary/contracts';
+import { matchingRules, ruleLookupSchema, ruleConfirmSchema, ruleRefreshSecondsSchema } from '@summary/contracts';
 import { ruleStore, type RuleStore } from './store.js';
 
 export function registerSharedRules(app: FastifyInstance, store: RuleStore = ruleStore) {
@@ -7,11 +7,12 @@ export function registerSharedRules(app: FastifyInstance, store: RuleStore = rul
     const parsed = ruleLookupSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: '게시글 URL이 올바르지 않습니다.' });
     try {
+      const refreshAfterSeconds = ruleRefreshSecondsSchema.parse(Number(process.env.SITE_RULE_REFRESH_SECONDS));
       if (parsed.data.includeSiteRules && store.list) {
         const rules = await store.list(parsed.data.url);
-        return { rule: matchingRules(rules, parsed.data.url)[0] || null, rules };
+        return { rule: matchingRules(rules, parsed.data.url)[0] || null, rules, refreshAfterSeconds };
       }
-      return { rule: await store.find(parsed.data.url) };
+      return { rule: await store.find(parsed.data.url), refreshAfterSeconds };
     }
     catch { return reply.code(503).send({ error: '공용 규칙을 조회하지 못했습니다.' }); }
   });

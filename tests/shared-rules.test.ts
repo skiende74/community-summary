@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { lookupShared, lookupCandidates } from '../apps/extension/src/Sites_/shared.ts';
+import { lookupShared, lookupCandidates, rememberRule } from '../apps/extension/src/Sites_/shared.ts';
 import type { SiteRule } from '../packages/contracts/src/index.ts';
 
 const rule: SiteRule = { origin: 'https://example.com', pathTemplate: '/board/{board}/{id}', idQuery: null,
   requiredQuery: [], title: 'h1', body: 'article', commentsRoot: '.comments', commentItem: '.row', commentText: '.text', replySelector: null };
 const data: Record<string, any> = {};
+let refreshAfterSeconds: number | undefined;
 let requests = 0, failure = false, found: SiteRule[] = [rule];
 Object.assign(globalThis, { chrome: { storage: { local: {
   get: async (key: string) => ({ [key]: structuredClone(data[key]) }),
@@ -15,7 +16,7 @@ globalThis.fetch = (async () => {
   requests++;
   await new Promise(resolve => setTimeout(resolve, 5));
   if (failure) throw new Error('offline');
-  return { ok: true, json: async () => ({ rule: found[0] || null, rules: found }) };
+  return { ok: true, json: async () => ({ rule: found[0] || null, rules: found, refreshAfterSeconds }) };
 }) as any;
 
 test('사이트당 24시간 한 번 조회하고 다른 게시판도 캐시로 적용, 수동 조회는 갱신', async () => {
@@ -50,4 +51,21 @@ test('게시판 예외를 먼저 반환하고 사이트 공통을 대안으로 �
   const before = requests;
   assert.deepEqual(await lookupCandidates('https://example.com/board/news/5'), [rule]);
   assert.equal(requests, before);
+});
+
+test('서버의 7일 주기를 저장하고 로컬 저장에도 유지하며 만료 또는 수동 요청에만 조회', async () => {
+  refreshAfterSeconds = 604800;
+  await lookupCandidates('https://example.com/board/park/7', true);
+  await rememberRule(rule);
+  const cached = data['siteRuleChecks:v2']['https://example.com'];
+  assert.equal(cached.refreshAfterSeconds, 604800);
+  const before = requests;
+  cached.at -= 6 * 86400000;
+  await lookupCandidates('https://example.com/board/park/8');
+  assert.equal(requests, before);
+  cached.at -= 86400001;
+  await lookupCandidates('https://example.com/board/park/9');
+  assert.equal(requests, before + 1);
+  await lookupCandidates('https://example.com/board/park/10', true);
+  assert.equal(requests, before + 2);
 });

@@ -20,7 +20,9 @@ export const ruleRequestSchema = z.object({ url: z.string().url().max(2000), htm
   links: z.array(z.string().url().max(500)).max(40).optional(), mode: z.enum(['auto', 'board']).optional() });
 export const ruleResponseSchema = z.object({ supported: z.boolean(), reason: z.string().max(500), rule: siteRuleSchema.nullable(), candidateId: z.string().uuid().optional() });
 export const ruleLookupSchema = z.object({ url: z.string().url().max(2000).refine(url => new URL(url).protocol === 'https:'), includeSiteRules: z.boolean().optional() });
-export const ruleLookupResponseSchema = z.object({ rule: siteRuleSchema.nullable(), rules: z.array(siteRuleSchema).max(100).optional() });
+export const ruleRefreshSecondsSchema = z.number().int().positive().safe().catch(86400);
+export const ruleLookupResponseSchema = z.object({ rule: siteRuleSchema.nullable(), rules: z.array(siteRuleSchema).max(100).optional(),
+  refreshAfterSeconds: ruleRefreshSecondsSchema });
 export const ruleConfirmSchema = ruleLookupSchema.extend({ candidateId: z.string().uuid() });
 export type SiteRule = z.infer<typeof siteRuleSchema>;
 
