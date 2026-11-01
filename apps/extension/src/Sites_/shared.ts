@@ -1,4 +1,4 @@
-import { matchingRules, ruleLookupResponseSchema, ruleRefreshSecondsSchema, ruleScope, type SiteRule } from '@summary/contracts';
+import { isSiteRule, matchingRules, ruleLookupResponseSchema, ruleRefreshSecondsSchema, ruleScope, type SiteRule } from '@summary/contracts';
 import { apiUrl } from '../config';
 import { publicUrl } from './pageLinks';
 
@@ -16,14 +16,14 @@ async function remember(origin: string, rules: SiteRule[], at = Date.now(), refr
   });
   return writes;
 }
-export async function rememberRule(rule: SiteRule) {
+export async function rememberRule(rule: SiteRule, replaceSite = false) {
   const checks = (await chrome.storage.local.get(checksKey))[checksKey] as Record<string, Check> | undefined;
   const check = checks?.[rule.origin];
-  await remember(rule.origin, [...(check?.rules || []).filter(r => ruleScope(r) !== ruleScope(rule)), rule].slice(-100), check?.at || 0, ruleRefreshSecondsSchema.parse(check?.refreshAfterSeconds));
+  await remember(rule.origin, [...(check?.rules || []).filter(r => ruleScope(r) !== ruleScope(rule) && !(replaceSite && isSiteRule(r))), rule].slice(-100), check?.at || 0, ruleRefreshSecondsSchema.parse(check?.refreshAfterSeconds));
 }
-export async function ruleRequest(path: 'lookup' | 'confirm', payload: { url: string; [key: string]: unknown }) {
+export async function ruleRequest(path: 'lookup' | 'confirm', payload: { url: string; [key: string]: unknown }, headers: Record<string, string> = {}) {
   const response = await fetch(`${apiUrl}/site-rules/${path}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Community-Summary': '1' },
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Community-Summary': '1', ...headers },
     body: JSON.stringify({ ...payload, url: publicUrl(payload.url) }), signal: AbortSignal.timeout(10000),
   });
   if (!response.ok) throw new Error('공용 규칙 서버에 연결하지 못했습니다.');

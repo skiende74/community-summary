@@ -14,7 +14,7 @@ export interface RuleStore {
   find(url: string): Promise<SiteRule | null>;
   list?(url: string): Promise<SiteRule[]>;
   stage(rule: SiteRule): Promise<string>;
-  confirm(id: string, url: string): Promise<boolean>;
+  confirm(id: string, url: string, replaceSite?: boolean): Promise<boolean>;
 }
 async function list(url: string) {
   const origin = new URL(url).origin;
@@ -32,18 +32,19 @@ export const ruleStore: RuleStore = {
     await client().set(`rules:v1:candidate:${id}`, rule, { ex: 86400 });
     return id;
   },
-  async confirm(id, url) {
+  async confirm(id, url, replaceSite = false) {
     const redis = client();
     const parsed = siteRuleSchema.safeParse(await redis.get(`rules:v1:candidate:${id}`));
     if (!parsed.success || !matchRule(parsed.data, url)) return false;
     // 클라이언트가 보낸 선택자를 저장하지 않고 서버가 생성한 후보만 승인한다.
     const rule = parsed.data;
+    if (replaceSite && !isSiteRule(rule)) return false;
     const field = isSiteRule(rule) ? 'site-default:v1' : hash(ruleScope(rule));
-    // 최초 공통 규칙은 원자적으로 고정한다. 이후 생성은 게시판 예외로 저장한다.
+    // 최초 공통 규칙은 원자적으로 고정하고, 인증된 관리자 교체만 덮어쓰기를 허용한다.
     const transaction = redis.multi();
-    if (isSiteRule(rule)) transaction.hsetnx(boardKey(rule.origin), field, rule);
+    if (isSiteRule(rule) && !replaceSite) transaction.hsetnx(boardKey(rule.origin), field, rule);
     else transaction.hset(boardKey(rule.origin), { [field]: rule });
     const result = await transaction.del(`rules:v1:candidate:${id}`).exec();
-    return !isSiteRule(rule) || result[0] === 1;
+    return replaceSite || !isSiteRule(rule) || result[0] === 1;
   },
 };

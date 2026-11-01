@@ -59,3 +59,16 @@ test('사이트 권한과 미리보기 승인 후에만 저장하고, 요약 요
   assert.equal(scripts.length, 0);
   assert.ok((await send(summarize, page)).error);
 });
+
+test('관리자 교체는 서버 승인 실패 시 로컬 규칙을 바꾸지 않는다', async () => {
+  const common = { ...rule, pathTemplate: '/service/board/{board}/{id}' };
+  const before = structuredClone(data['siteRules:v1']);
+  globalThis.fetch = (async (_url: string, init: RequestInit) => {
+    assert.equal(JSON.parse(init.body as string).replaceSite, true);
+    return { ok: false, status: 401 };
+  }) as any;
+  const result = await send({ ...save, rule: common, replaceSite: true,
+    candidateId: '12345678-1234-4234-8234-123456789abc' });
+  assert.ok(result.error);
+  assert.deepEqual(data['siteRules:v1'], before);
+});

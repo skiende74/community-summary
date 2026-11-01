@@ -1,4 +1,4 @@
-import { requestSchema, responseSchema, ruleRequestSchema, ruleResponseSchema, siteRuleSchema } from '@summary/contracts';
+import { isSiteRule, requestSchema, responseSchema, ruleRequestSchema, ruleResponseSchema, siteRuleSchema } from '@summary/contracts';
 import { apiUrl } from './config';
 import { readRules, saveRule, matchRule, ruleScope, rulesKey, setDisabled, disabledKey } from './Sites_/rules';
 import { syncScripts } from './Sites_/registration';
@@ -42,15 +42,20 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
           if (!await chrome.permissions.contains({ origins: [`${rule.origin}/*`] })) throw new Error('사이트 접근 권한이 필요합니다.');
           const preview = await chrome.tabs.sendMessage(message.tabId, { type: 'preview-rule', rule });
           if (!preview?.count || preview.url !== tab.url) throw new Error('댓글 추출 결과를 다시 확인해 주세요.');
+          if (message.replaceSite) {
+            if (!message.candidateId || !isSiteRule(rule)) throw new Error('사이트 공통 후보를 다시 생성해 주세요.');
+            await ruleRequest('confirm', { candidateId: message.candidateId, url: tab.url!, replaceSite: true }, await ruleHeaders());
+            await chrome.storage.local.set({ [rulesKey]: (await readRules()).filter(r => r.origin !== rule.origin || !isSiteRule(r)) });
+          }
           await setDisabled(rule, tab.url!, false);
           await saveRule(rule, message.source === 'shared' ? 'shared' : 'generated');
-          await rememberRule(rule);
+          await rememberRule(rule, message.replaceSite === true);
         } else {
           await setDisabled(rule, tab.url!, true);
           await chrome.storage.local.set({ [rulesKey]: (await readRules()).filter(r => ruleScope(r) !== ruleScope(rule)) });
         }
         await syncScripts();
-        const shared = message.type === 'save-rule' && message.candidateId
+        const shared = message.replaceSite ? true : message.type === 'save-rule' && message.candidateId
           ? await ruleRequest('confirm', { candidateId: message.candidateId, url: tab.url! }).then(() => true).catch(() => false)
           : undefined;
         respond({ ok: true, shared }); return;

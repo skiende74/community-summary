@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { matchingRules, ruleLookupSchema, ruleConfirmSchema, ruleRefreshSecondsSchema } from '@summary/contracts';
+import { isAdmin } from '../Access_/Access.js';
 import { ruleStore, type RuleStore } from './store.js';
 
 export function registerSharedRules(app: FastifyInstance, store: RuleStore = ruleStore) {
@@ -19,8 +20,9 @@ export function registerSharedRules(app: FastifyInstance, store: RuleStore = rul
   app.post('/site-rules/confirm', async (request, reply) => {
     const parsed = ruleConfirmSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: '승인할 규칙이 올바르지 않습니다.' });
+    if (parsed.data.replaceSite && !isAdmin(request)) return reply.code(401).send({ error: '관리자 인증이 필요합니다.' });
     try {
-      if (!await store.confirm(parsed.data.candidateId, parsed.data.url))
+      if (!await store.confirm(parsed.data.candidateId, parsed.data.url, parsed.data.replaceSite === true))
         return reply.code(400).send({ error: '후보가 만료되었거나 범위가 다릅니다. 기존 사이트 공통 규칙은 덮어쓰지 않습니다.' });
       return { ok: true };
     } catch { return reply.code(503).send({ error: '공용 저장에 실패했습니다. 로컬 규칙은 유지됩니다.' }); }

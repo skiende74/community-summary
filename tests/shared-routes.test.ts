@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import Fastify from 'fastify';
+import { registerSiteRules } from '../apps/api/src/SiteRules_/SiteRules.ts';
 import { registerSharedRules } from '../apps/api/src/SiteRules_/shared.ts';
 import type { RuleStore } from '../apps/api/src/SiteRules_/store.ts';
 
@@ -52,4 +53,40 @@ test('서버 환경변수로 조회 주기를 바꾸고 잘못된 값은 하루�
     else process.env.SITE_RULE_REFRESH_SECONDS = previous;
     await app.close();
   }
+});
+
+test('공통 규칙 교체는 관리자 인증 후에만 저장소로 전달한다', async () => {
+  const previous = process.env.ADMIN_TOKEN;
+  process.env.ADMIN_TOKEN = 'admin-test-token-'.repeat(4);
+  let calls = 0;
+  const app = Fastify();
+  registerSharedRules(app, { find: async () => null, stage: async () => '',
+    confirm: async (_id, _url, replace) => { calls++; assert.equal(replace, true); return true; } });
+  const payload = { url: 'https://example.com/b/news/1', candidateId: '12345678-1234-4234-8234-123456789abc', replaceSite: true };
+  try {
+    for (const authorization of [undefined, 'Bearer invalid']) {
+      const response = await app.inject({ method: 'POST', url: '/site-rules/confirm', payload,
+        headers: authorization ? { authorization } : {} });
+      assert.equal(response.statusCode, 401);
+    }
+    assert.equal(calls, 0);
+    const response = await app.inject({ method: 'POST', url: '/site-rules/confirm', payload,
+      headers: { authorization: `Bearer ${process.env.ADMIN_TOKEN}` } });
+    assert.equal(response.statusCode, 200);
+    assert.equal(calls, 1);
+  } finally {
+    if (previous === undefined) delete process.env.ADMIN_TOKEN;
+    else process.env.ADMIN_TOKEN = previous;
+    await app.close();
+  }
+});
+
+test('일반 사용자는 공통 규칙 재생성 경로에 진입할 수 없다', async () => {
+  const app = Fastify();
+  registerSiteRules(app);
+  try {
+    const response = await app.inject({ method: 'POST', url: '/site-rules',
+      payload: { url: 'https://example.com/b/news/1', html: 'x'.repeat(100), mode: 'auto', replaceSite: true } });
+    assert.equal(response.statusCode, 401);
+  } finally { await app.close(); }
 });

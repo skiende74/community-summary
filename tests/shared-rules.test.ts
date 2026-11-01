@@ -69,3 +69,13 @@ test('서버의 7일 주기를 저장하고 로컬 저장에도 유지하며 만
   await lookupCandidates('https://example.com/board/park/10', true);
   assert.equal(requests, before + 2);
 });
+
+test('관리자 교체는 캐시의 이전 공통 범위를 제거하고 게시판 예외와 주기를 보존', async () => {
+  const replacement = { ...rule, pathTemplate: '/new/{board}/{id}' };
+  await rememberRule(replacement, true);
+  const cached = data['siteRuleChecks:v2'][rule.origin];
+  assert.equal(cached.refreshAfterSeconds, 604800);
+  assert.ok(cached.rules.some((r: SiteRule) => r.pathTemplate === '/board/park/{id}'));
+  assert.ok(cached.rules.some((r: SiteRule) => r.pathTemplate === replacement.pathTemplate));
+  assert.ok(!cached.rules.some((r: SiteRule) => r.pathTemplate === rule.pathTemplate));
+});

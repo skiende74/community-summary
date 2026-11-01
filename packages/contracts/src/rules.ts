@@ -17,13 +17,13 @@ export const siteRuleSchema = z.object({
   && !(rule.boardQuery && (rule.pathTemplate.includes('{board}') || rule.boardQuery === rule.idQuery
     || rule.requiredQuery.some(q => q.key === rule.boardQuery))), '게시글·게시판 URL 규칙이 올바르지 않습니다.');
 export const ruleRequestSchema = z.object({ url: z.string().url().max(2000), html: z.string().min(100).max(80000),
-  links: z.array(z.string().url().max(500)).max(40).optional(), mode: z.enum(['auto', 'board']).optional() });
+  links: z.array(z.string().url().max(500)).max(40).optional(), mode: z.enum(['auto', 'board']).optional(), replaceSite: z.boolean().optional() });
 export const ruleResponseSchema = z.object({ supported: z.boolean(), reason: z.string().max(500), rule: siteRuleSchema.nullable(), candidateId: z.string().uuid().optional() });
 export const ruleLookupSchema = z.object({ url: z.string().url().max(2000).refine(url => new URL(url).protocol === 'https:'), includeSiteRules: z.boolean().optional() });
 export const ruleRefreshSecondsSchema = z.number().int().positive().safe().catch(86400);
 export const ruleLookupResponseSchema = z.object({ rule: siteRuleSchema.nullable(), rules: z.array(siteRuleSchema).max(100).optional(),
   refreshAfterSeconds: ruleRefreshSecondsSchema });
-export const ruleConfirmSchema = ruleLookupSchema.extend({ candidateId: z.string().uuid() });
+export const ruleConfirmSchema = ruleLookupSchema.extend({ candidateId: z.string().uuid(), replaceSite: z.boolean().optional() });
 export type SiteRule = z.infer<typeof siteRuleSchema>;
 
 export function matchRule(rule: SiteRule, href: string) {

@@ -5,6 +5,7 @@ import { model } from '../Summarize_/prompt.js';
 import { ruleStore } from './store.js';
 import { registerSharedRules } from './shared.js';
 import { allowRuleGeneration } from '../Access_/RuleQuota.js';
+import { isAdmin } from '../Access_/Access.js';
 import { supportedScope } from './scope.js';
 
 const instructions = `공개 커뮤니티 게시글의 정제된 DOM에서 재사용 가능한 추출 규칙을 만든다.
@@ -30,12 +31,14 @@ export function registerSiteRules(app: FastifyInstance) {
   app.post('/site-rules', async (request, reply) => {
     const parsed = ruleRequestSchema.safeParse(request.body);
     if (!parsed.success || new URL(parsed.data.url).protocol !== 'https:') return reply.code(400).send({ error: '페이지 데이터가 올바르지 않습니다.' });
+    if (parsed.data.replaceSite && !isAdmin(request)) return reply.code(401).send({ error: '관리자 인증이 필요합니다.' });
     if (!process.env.OPENAI_API_KEY) return reply.code(503).send({ error: '서버 설정이 필요합니다.' });
     if (active >= 1) return reply.code(429).send({ error: '규칙 생성 중입니다. 잠시 후 다시 시도해 주세요.' });
     active++;
     try {
       const input = { ...parsed.data };
-      if (input.mode === 'auto' && (await ruleStore.list!(input.url)).some(isSiteRule)) input.mode = 'board';
+      if (input.replaceSite) input.mode = 'auto';
+      if (!input.replaceSite && input.mode === 'auto' && (await ruleStore.list!(input.url)).some(isSiteRule)) input.mode = 'board';
       if (!await allowRuleGeneration(request, reply, parsed.data.url)) return;
       const response = await new OpenAI({ timeout: 22000, maxRetries: 0 }).responses.create({
         model, reasoning: { effort: 'low' }, instructions, input: `다음 페이지의 추출 규칙을 JSON으로 반환하세요.\n${JSON.stringify(input)}`,
@@ -45,6 +48,8 @@ export function registerSiteRules(app: FastifyInstance) {
       const result = ruleResponseSchema.parse(JSON.parse(response.output_text));
       if (result.supported && (!result.rule || !matchRule(result.rule, parsed.data.url))) throw new Error('Invalid rule');
       if (result.rule) result.rule = supportedScope(result.rule, input);
+      if (input.replaceSite && (!result.rule || !isSiteRule(result.rule)))
+        return reply.code(422).send({ error: '사이트 공통 범위를 확인하지 못했습니다. 다른 게시판 링크가 있는 게시글에서 시도해 주세요. 기존 규칙은 유지됩니다.' });
       const candidateId = result.supported && result.rule ? await ruleStore.stage(result.rule).catch(() => undefined) : undefined;
       return { ...result, candidateId };
     } catch {
