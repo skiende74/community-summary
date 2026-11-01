@@ -8,7 +8,10 @@ import { ruleHeaders } from './Admin_/Admin';
 import { readSettings } from './settings';
 import { requireConsent } from './Consent_/Consent';
 
-chrome.runtime.onInstalled.addListener(() => { void syncScripts(); });
+chrome.runtime.onInstalled.addListener(details => {
+  void syncScripts();
+  if (details.reason === 'install') void chrome.runtime.openOptionsPage();
+});
 chrome.runtime.onStartup.addListener(() => { void syncScripts(); });
 chrome.permissions.onRemoved.addListener(() => { void syncScripts(); });
 chrome.permissions.onAdded.addListener(() => { void syncScripts(); });

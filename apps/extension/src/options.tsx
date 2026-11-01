@@ -10,7 +10,7 @@ const toneExamples = { default: '서비스의 기본 말투를 따라요.', brie
 
 function Options() {
   const [settings, setSettings] = useState<Settings>();
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState('데이터 전송에 동의했어요. 이 탭을 닫고 커뮤니티 게시글에서 요약을 이용할 수 있어요.');
   const [saving, setSaving] = useState(false);
   useEffect(() => { void readSettings().then(setSettings).catch(() => setStatus('설정을 불러오지 못했어요.')); }, []);
   async function change<K extends keyof Settings>(key: K, value: Settings[K]) {

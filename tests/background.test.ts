@@ -8,11 +8,12 @@ const data: Record<string, unknown> = { 'dataConsent:v1': true, 'hostCatalog:v1'
 let permitted = true, count = 2, fetchCount = 0;
 let lastPayload: any;
 let scripts: any[] = [];
-let listener: any;
+let listener: any, installed: any, optionsOpened = 0;
 const event = { addListener() {} };
 Object.assign(globalThis, { chrome: {
   runtime: { id: 'test', getURL: (path: string) => `chrome-extension://test/${path}`,
-    onInstalled: event, onStartup: event, onMessage: { addListener(fn: any) { listener = fn; } } },
+    openOptionsPage: async () => { optionsOpened++; },
+    onInstalled: { addListener(fn: any) { installed = fn; } }, onStartup: event, onMessage: { addListener(fn: any) { listener = fn; } } },
   permissions: { contains: async () => permitted, getAll: async () => ({ origins: [] }), onRemoved: event, onAdded: event },
   tabs: { get: async () => ({ url }), sendMessage: async () => ({ count, url }) },
   storage: { local: { get: async (key: string | object) => typeof key === 'string' ? { [key]: data[key] } : { ...key, ...data }, set: async (value: object) => Object.assign(data, value) } },
@@ -79,4 +80,12 @@ test('동의를 철회하면 요약과 규칙 생성 요청이 네트워크 전�
   assert.ok((await send(summarize, page)).error);
   assert.ok((await send({ type: 'generate-rule' })).error);
   assert.equal(fetchCount, before);
+});
+
+test('최초 설치에만 동의 안내 설정 탭을 열고 업데이트에는 열지 않는다', () => {
+  installed({ reason: 'install' });
+  assert.equal(optionsOpened, 1);
+  installed({ reason: 'update' });
+  installed({ reason: 'chrome_update' });
+  assert.equal(optionsOpened, 1);
 });
