@@ -75,3 +75,28 @@ test('요약 저장은 게시글 키별로 분리하고 기존 결과 복원', a
   assert.equal((await readSummary('community-summary:v3:board:1'))?.result.summary, '요약 결과');
   assert.equal(await readSummary('community-summary:v3:board:2'), null);
 });
+
+test('표시 앵커는 댓글 추출 범위와 분리하고 기존 규칙은 기존 위치 유지', () => {
+  mount('<main class="wide">' + fixture + '</main>');
+  const legacy = { ...rule, commentsRoot: '.wide' };
+  assert.equal(inspect(legacy)!.anchor.className, 'wide');
+  const anchored = siteRuleSchema.parse({ ...legacy, summaryAnchor: '.comment_head' });
+  assert.equal(inspect(anchored)!.anchor.className, 'comment_head');
+  assert.equal(inspect(anchored)!.payload.comments.length, 2);
+  assert.equal(inspect(anchored)!.key, inspect(legacy)!.key);
+  for (const selector of ['.missing', '.comment_row', '.post_subject', '.wide', '.post_article']) {
+    const invalid = { ...legacy, summaryAnchor: selector };
+    assert.equal(inspect(invalid), null);
+    assert.equal(diagnose(invalid).kind, 'error');
+    assert.match(diagnose(invalid).message, /요약 표시 위치/);
+  }
+});
+
+test('MLBPARK처럼 댓글 제목과 목록이 형제이면 제목 앞에 표시하고 목록에서만 추출', () => {
+  mount('<h3 class="post_subject"><span>제목</span></h3><div class="post_article">본문</div>' +
+    '<div id="reply_zone">댓글 1개</div><div class="reply_list"><div class="other_con"><span class="re_txt">댓글</span></div></div>');
+  const selected = { ...rule, commentsRoot: '.reply_list', summaryAnchor: '#reply_zone', commentItem: '.other_con', commentText: '.re_txt' };
+  assert.equal(inspect(selected)!.anchor.id, 'reply_zone');
+  assert.deepEqual(inspect(selected)!.payload.comments.map(c => c.text), ['댓글']);
+  assert.equal(diagnose(selected).kind, 'ok');
+});

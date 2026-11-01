@@ -2,6 +2,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { siteRuleSchema, type SiteRule } from '@summary/contracts';
 import { inspect, type Page } from './Sites_/Sites';
 import { readRules, matchRule, matchingRules, rulesKey, disabledKey } from './Sites_/rules';
+import { placementError } from './Sites_/placement';
 import { snapshot } from './Sites_/snapshot';
 import { diagnose, type ExtractionStatus } from './Sites_/diagnose';
 import { readSettings, type Settings } from './settings';
@@ -73,8 +74,9 @@ async function start() {
     if (message?.type === 'preview-rule') {
       const parsed = siteRuleSchema.safeParse(message.rule);
       const page = parsed.success ? inspect(parsed.data) : null;
+      const error = parsed.success ? (() => { try { return placementError(parsed.data); } catch { return '요약 표시 위치의 선택자가 올바르지 않아요.'; } })() : null;
       respond(page ? { title: page.payload.title, count: page.payload.comments.length,
-        comments: page.payload.comments.slice(0, 3).map(c => c.text.slice(0, 180)), url: location.href } : null);
+        comments: page.payload.comments.slice(0, 3).map(c => c.text.slice(0, 180)), url: location.href } : error ? { error, url: location.href } : null);
     }
   });
   schedule();

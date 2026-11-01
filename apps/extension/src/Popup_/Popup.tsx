@@ -86,7 +86,10 @@ function Popup() {
     if (!result.supported || !result.rule) throw new Error(result.reason || '댓글이 있는 공개 게시글에서 시도해 주세요.');
     if (replace && (!isSiteRule(result.rule) || !result.candidateId)) throw new Error('공통 규칙 후보를 생성하지 못했습니다. 기존 규칙은 유지됩니다.');
     const checked = await previewRules(tab!.id!, tab!.url!, [result.rule]);
-    if (!checked) throw new Error('댓글을 정확히 찾지 못했습니다. 댓글을 펼친 뒤 다시 시도해 주세요.');
+    if (!checked) {
+      const detail = await chrome.tabs.sendMessage(tab!.id!, { type: 'preview-rule', rule: result.rule });
+      throw new Error(detail?.error || '댓글을 정확히 찾지 못했습니다. 댓글을 펼친 뒤 다시 시도해 주세요.');
+    }
     setRule(result.rule); setCandidateId(result.candidateId); setPreview(checked.preview); setStatus('댓글 본문만 추출됐는지 확인해 주세요.');
   });
   return <main>
@@ -111,6 +114,7 @@ function Popup() {
       <h2>추출 미리보기</h2><strong>{preview.title}</strong>
       <p className="muted">텍스트 댓글 {preview.count}개 · 처음 3개 확인</p>
       <ul>{preview.comments.map((text, i) => <li key={i}>{text}</li>)}</ul>
+      <p className="muted">요약 위치: {rule.summaryAnchor || rule.commentsRoot} 앞</p>
       <p className="scope">{isSiteRule(rule) ? '사이트 공통' : '이 게시판'} · {rule.pathTemplate}{rule.idQuery ? `?${rule.idQuery}={id}` : ''}</p>
       <button disabled={busy} onClick={() => void run(async () => {
         const result = await request({ type: 'save-rule', rule, candidateId, replaceSite, tabId: tab!.id, url: preview.url });

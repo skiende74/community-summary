@@ -1,4 +1,5 @@
 import type { SiteRule } from '@summary/contracts';
+import { placementError } from './placement';
 import { inspect } from './Sites';
 
 export type ExtractionStatus = { kind: 'ok' | 'empty' | 'error' | 'disabled' | 'checking' | 'unconfigured'; message: string };
@@ -12,6 +13,8 @@ export function diagnose(rule?: SiteRule): ExtractionStatus {
           : `${name}을 찾지 못했어요. 로딩 후 다시 확인하거나 규칙을 다시 만들어 주세요.` };
       }
     }
+    const error = rule && placementError(rule);
+    if (error) return { kind: 'error', message: error };
     const page = inspect(rule);
     if (!page) return { kind: 'error', message: '현재 페이지에서 댓글을 추출하지 못했어요. 로딩 상태와 추출 규칙을 확인해 주세요.' };
     return page.payload.comments.length

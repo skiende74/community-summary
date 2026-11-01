@@ -1,4 +1,5 @@
 import { limits, matchRule, ruleScope, specializeRule, type SiteRule, type SummaryRequest } from '@summary/contracts';
+import { placementError } from './placement';
 import { extract as dogdrip, findAnchor } from '../Dogdrip_/Dogdrip';
 
 export type Page = { key: string; anchor: HTMLElement; payload: SummaryRequest; clipped: boolean; fingerprint: string };
@@ -19,13 +20,15 @@ export function inspect(rule?: SiteRule): Page | null {
       const nodes = document.querySelectorAll<HTMLElement>(selector);
       return nodes.length === 1 ? nodes[0] : null;
     };
-    const titleNode = single(rule.title), bodyNode = single(rule.body), anchor = single(rule.commentsRoot);
-    if (!titleNode || !bodyNode || !anchor || anchor.closest('[aria-busy="true"]') || anchor.querySelector('[aria-busy="true"]')) return null;
+    const titleNode = single(rule.title), bodyNode = single(rule.body), commentsRoot = single(rule.commentsRoot);
+    const anchor = rule.summaryAnchor ? single(rule.summaryAnchor) : commentsRoot;
+    if (!titleNode || !bodyNode || !commentsRoot || !anchor || placementError(rule)
+      || commentsRoot.closest('[aria-busy="true"]') || commentsRoot.querySelector('[aria-busy="true"]')) return null;
     const title = titleNode.textContent?.trim().slice(0, 500) || '';
     if (!title) return null;
     const comments: SummaryRequest['comments'] = [];
     let remaining = limits.total, clipped = false;
-    for (const [i, item] of [...anchor.querySelectorAll(rule.commentItem)].entries()) {
+    for (const [i, item] of [...commentsRoot.querySelectorAll(rule.commentItem)].entries()) {
       const node = rule.commentText === ':scope' ? item : item.querySelector(rule.commentText);
       const original = node?.textContent?.replace(/\s+/g, ' ').trim() || '';
       if (!original) continue;

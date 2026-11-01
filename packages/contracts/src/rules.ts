@@ -7,7 +7,7 @@ export const siteRuleSchema = z.object({
   idQuery: z.string().max(80).nullable(),
   boardQuery: z.string().min(1).max(80).nullable().optional(),
   requiredQuery: z.array(z.object({ key: z.string().min(1).max(80), value: z.string().max(160) })).max(5),
-  title: selector, body: selector, commentsRoot: selector, commentItem: selector, commentText: selector,
+  title: selector, body: selector, commentsRoot: selector, summaryAnchor: selector.optional(), commentItem: selector, commentText: selector,
   replySelector: z.string().max(300).nullable(),
 }).refine(rule => ((rule.pathTemplate.match(/\{id\}/g)?.length === 1 && !rule.idQuery)
   || (!rule.pathTemplate.includes('{id}') && !!rule.idQuery))
