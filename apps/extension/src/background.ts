@@ -5,6 +5,7 @@ import { syncScripts } from './Sites_/registration';
 import { lookupCandidates, ruleRequest, rememberRule } from './Sites_/shared';
 import { refreshShared } from './Sites_/refresh';
 import { ruleHeaders } from './Admin_/Admin';
+import { readSettings } from './settings';
 
 chrome.runtime.onInstalled.addListener(() => { void syncScripts(); });
 chrome.runtime.onStartup.addListener(() => { void syncScripts(); });
@@ -62,7 +63,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         (!(await readRules()).some(rule => matchRule(rule, sender.url!)) ||
           !await chrome.permissions.contains({ origins: [`${new URL(sender.url!).origin}/*`] })))))
         throw new Error('등록한 게시판에서 요청해 주세요.');
-      const payload = summarize ? requestSchema.parse(message.payload) : ruleRequestSchema.parse(message.payload);
+      const payload = summarize ? requestSchema.parse({ ...message.payload, tone: (await readSettings()).tone }) : ruleRequestSchema.parse(message.payload);
       const response = await fetch(`${apiUrl}/${summarize ? 'summarize' : 'site-rules'}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Community-Summary': '1',
           'X-Summary-Refresh': message.refresh === true ? '1' : '0', ...(summarize ? {} : await ruleHeaders()) },

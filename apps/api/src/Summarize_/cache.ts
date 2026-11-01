@@ -4,8 +4,8 @@ import { model, promptVersion } from './prompt.js';
 
 const results = new Map<string, { expires: number; value: SummaryResponse }>();
 export const pending = new Map<string, Promise<SummaryResponse>>();
-export const cacheKey = (input: SummaryRequest) => createHash('sha256')
-  .update(JSON.stringify([model, 'low', promptVersion, input])).digest('hex');
+export const cacheKey = ({ tone = 'haeyo', ...content }: SummaryRequest) => createHash('sha256')
+  .update(JSON.stringify([model, 'low', promptVersion, tone, content])).digest('hex');
 export function getCached(key: string) {
   const item = results.get(key);
   if (item && item.expires > Date.now()) return item.value;

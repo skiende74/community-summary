@@ -2,9 +2,12 @@ import { z } from 'zod';
 export * from './rules.js';
 
 export const limits = { comments: 300, comment: 2000, body: 6000, total: 60000 };
+export const summaryToneSchema = z.enum(['brief', 'haeyo', 'formal']);
+export type SummaryTone = z.infer<typeof summaryToneSchema>;
 export const requestSchema = z.object({
   title: z.string().trim().min(1).max(500),
   body: z.string().max(limits.body),
+  tone: summaryToneSchema.optional(),
   comments: z.array(z.object({
     id: z.string().regex(/^comment_\d+$/),
     text: z.string().trim().min(1).max(limits.comment),
