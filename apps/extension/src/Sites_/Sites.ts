@@ -1,4 +1,4 @@
-import { limits, matchRule, ruleScope, specializeRule, type SiteRule, type SummaryRequest } from '@summary/contracts';
+import { shortenBody, limits, matchRule, ruleScope, specializeRule, type SiteRule, type SummaryRequest } from '@summary/contracts';
 import { placementError } from './placement';
 import { extract as dogdrip, findAnchor } from '../Dogdrip_/Dogdrip';
 
@@ -39,7 +39,7 @@ export function inspect(rule?: SiteRule): Page | null {
       comments.push({ id: `comment_${i}`, text, isReply: !!rule.replySelector &&
         (item.matches(rule.replySelector) || !!item.querySelector(rule.replySelector)) });
     }
-    const payload = { title, body: (bodyNode.textContent || '').trim().slice(0, limits.body), comments };
+    const payload = { title, body: shortenBody(bodyNode.textContent || ''), comments };
     return page(`community-summary:v3:${encodeURIComponent(ruleScope(specializeRule(rule, location.href)))}:${encodeURIComponent(id)}`, anchor, payload, clipped);
   } catch { return null; }
 }

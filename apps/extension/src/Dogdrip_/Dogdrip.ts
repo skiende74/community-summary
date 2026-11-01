@@ -1,4 +1,4 @@
-import { limits, type SummaryRequest } from '@summary/contracts';
+import { shortenBody, limits, type SummaryRequest } from '@summary/contracts';
 
 export function extract(doc: Document = document) {
   const items = Array.from(doc.querySelectorAll<HTMLElement>('.comment-list .comment-item[id^="comment_"]'));
@@ -19,7 +19,7 @@ export function extract(doc: Document = document) {
   const title = doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || doc.title;
   const body = doc.querySelector('.xe_content[class*="document_"]')?.textContent ?? '';
   return {
-    payload: { title: title.trim().slice(0, 500), body: body.trim().slice(0, limits.body), comments },
+    payload: { title: title.trim().slice(0, 500), body: shortenBody(body), comments },
     loaded: items.length, clipped,
   };
 }

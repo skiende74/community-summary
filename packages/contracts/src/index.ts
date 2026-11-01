@@ -1,12 +1,14 @@
 import { z } from 'zod';
+import { bodyLimit, shortenBody } from './body.js';
+export { shortenBody } from './body.js';
 export * from './rules.js';
 
-export const limits = { comments: 300, comment: 2000, body: 6000, total: 60000 };
+export const limits = { comments: 300, comment: 2000, body: bodyLimit, total: 60000 };
 export const summaryToneSchema = z.enum(['brief', 'haeyo', 'formal']);
 export type SummaryTone = z.infer<typeof summaryToneSchema>;
 export const requestSchema = z.object({
   title: z.string().trim().min(1).max(500),
-  body: z.string().max(limits.body),
+  body: z.string().max(6000).transform(shortenBody), // 이전 확장의 6,000자 요청도 축약하여 수용
   tone: summaryToneSchema.optional(),
   comments: z.array(z.object({
     id: z.string().regex(/^comment_\d+$/),
