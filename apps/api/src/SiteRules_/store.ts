@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { Redis } from '@upstash/redis';
 import { isSiteRule, matchingRules, matchRule, ruleScope, siteRuleSchema, type SiteRule } from '@summary/contracts';
+import { hostsKey, registeredHosts } from './hosts.js';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const boardKey = (origin: string) => `rules:v1:origin:${hash(origin)}`;
@@ -11,6 +12,7 @@ function client() {
   return new Redis({ url, token, retry: { retries: 0 }, signal: () => AbortSignal.timeout(4000) });
 }
 export interface RuleStore {
+  hosts?(): Promise<string[]>;
   find(url: string): Promise<SiteRule | null>;
   list?(url: string): Promise<SiteRule[]>;
   stage(rule: SiteRule): Promise<string>;
@@ -25,6 +27,7 @@ async function list(url: string) {
   }).sort((a, b) => Number(isSiteRule(b)) - Number(isSiteRule(a))).slice(0, 100);
 }
 export const ruleStore: RuleStore = {
+  hosts: () => registeredHosts(client()),
   list,
   async find(url) { return matchingRules((await list(url)).filter(rule => !isSiteRule(rule)), url)[0] || null; },
   async stage(rule) {
@@ -44,7 +47,7 @@ export const ruleStore: RuleStore = {
     const transaction = redis.multi();
     if (isSiteRule(rule) && !replaceSite) transaction.hsetnx(boardKey(rule.origin), field, rule);
     else transaction.hset(boardKey(rule.origin), { [field]: rule });
-    const result = await transaction.del(`rules:v1:candidate:${id}`).exec();
+    const result = await transaction.sadd(hostsKey, new URL(rule.origin).hostname).del(`rules:v1:candidate:${id}`).exec();
     return replaceSite || !isSiteRule(rule) || result[0] === 1;
   },
 };

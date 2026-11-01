@@ -4,7 +4,7 @@ import { test } from 'node:test';
 const rule = { origin: 'https://www.clien.net', pathTemplate: '/service/board/park/{id}', idQuery: null,
   requiredQuery: [], title: 'h3', body: 'article', commentsRoot: '.comments', commentItem: '.row', commentText: '.text', replySelector: null };
 const url = 'https://www.clien.net/service/board/park/123';
-const data: Record<string, unknown> = {};
+const data: Record<string, unknown> = { 'dataConsent:v1': true, 'hostCatalog:v1': { hosts: [], at: Date.now(), retryAt: 0 } };
 let permitted = true, count = 2, fetchCount = 0;
 let lastPayload: any;
 let scripts: any[] = [];
@@ -71,4 +71,12 @@ test('관리자 교체는 서버 승인 실패 시 로컬 규칙을 바꾸지 �
     candidateId: '12345678-1234-4234-8234-123456789abc' });
   assert.ok(result.error);
   assert.deepEqual(data['siteRules:v1'], before);
+});
+
+test('동의를 철회하면 요약과 규칙 생성 요청이 네트워크 전에 차단된다', async () => {
+  data['dataConsent:v1'] = false;
+  const before = fetchCount;
+  assert.ok((await send(summarize, page)).error);
+  assert.ok((await send({ type: 'generate-rule' })).error);
+  assert.equal(fetchCount, before);
 });

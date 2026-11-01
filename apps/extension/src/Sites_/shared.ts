@@ -1,6 +1,8 @@
 import { isSiteRule, matchingRules, ruleLookupResponseSchema, ruleRefreshSecondsSchema, ruleScope, type SiteRule } from '@summary/contracts';
 import { apiUrl } from '../config';
 import { publicUrl } from './pageLinks';
+import { registeredHost } from './catalog';
+import { requireConsent } from '../Consent_/Consent';
 
 const checksKey = 'siteRuleChecks:v2';
 type Check = { at: number; rules: SiteRule[]; refreshAfterSeconds?: number };
@@ -22,6 +24,7 @@ export async function rememberRule(rule: SiteRule, replaceSite = false) {
   await remember(rule.origin, [...(check?.rules || []).filter(r => ruleScope(r) !== ruleScope(rule) && !(replaceSite && isSiteRule(r))), rule].slice(-100), check?.at || 0, ruleRefreshSecondsSchema.parse(check?.refreshAfterSeconds));
 }
 export async function ruleRequest(path: 'lookup' | 'confirm', payload: { url: string; [key: string]: unknown }, headers: Record<string, string> = {}) {
+  await requireConsent();
   const response = await fetch(`${apiUrl}/site-rules/${path}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Community-Summary': '1', ...headers },
     body: JSON.stringify({ ...payload, url: publicUrl(payload.url) }), signal: AbortSignal.timeout(10000),
@@ -30,6 +33,8 @@ export async function ruleRequest(path: 'lookup' | 'confirm', payload: { url: st
   return response.json();
 }
 export async function lookupCandidates(url: string, force = false): Promise<SiteRule[]> {
+  await requireConsent();
+  if (!force && !await registeredHost(url)) return [];
   const origin = new URL(url).origin;
   let work = pending.get(origin);
   if (!work) {

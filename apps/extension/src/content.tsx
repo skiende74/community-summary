@@ -8,8 +8,10 @@ import { diagnose, type ExtractionStatus } from './Sites_/diagnose';
 import { readSettings, type Settings } from './settings';
 import { SummaryPanel } from './SummaryPanel_/SummaryPanel';
 import styles from './SummaryPanel_/styles.css?inline';
+import { consentKey, hasConsent } from './Consent_/Consent';
 
 async function start() {
+  let consent = await hasConsent();
   const [initialSettings, initialRules] = await Promise.all([readSettings(), readRules()]);
   let settings: Settings = initialSettings, rules: SiteRule[] = initialRules;
   let disabled = await readRules(disabledKey);
@@ -26,14 +28,14 @@ async function start() {
   const isDisabled = () => disabled.some(rule => matchRule(rule, location.href));
   const getPage = () => location.href === href && !isDisabled() ? inspect(currentRule()) : null;
   const checkShared = () => {
-    if (!settings.enabled || /^(www\.)?dogdrip\.net$/.test(location.hostname)) return;
+    if (!consent || !settings.enabled || /^(www\.)?dogdrip\.net$/.test(location.hostname)) return;
     void chrome.runtime.sendMessage({ type: 'check-rule' }).then(result => {
       if (result?.status) sharedStatus = result.status;
     }).catch(() => { sharedStatus = { kind: 'error', message: '공용 규칙을 확인하지 못했어요. 팝업에서 다시 확인해 주세요.' }; });
   };
   const tick = () => {
     timer = 0;
-    if (!settings.enabled) { clear(); return; }
+    if (!consent || !settings.enabled) { clear(); return; }
     const page = getPage();
     if (!page) { clear(); return; }
     if (host && !host.isConnected) clear();
@@ -57,6 +59,10 @@ async function start() {
   new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true, characterData: true });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== 'local') return;
+    if (consentKey in changes) {
+      consent = changes[consentKey].newValue === true;
+      clear(); schedule(); if (consent) checkShared();
+    }
     if ('enabled' in changes || 'expanded' in changes) void readSettings().then(value => {
       settings = value; schedule(); if ('enabled' in changes && value.enabled) checkShared();
     });
@@ -70,7 +76,7 @@ async function start() {
       : isDisabled() ? { kind: 'disabled', message: '이 게시판의 자동 적용을 해제했어요.' }
       : !currentRule() && !/^(www\.)?dogdrip\.net$/.test(location.hostname) ? sharedStatus : diagnose(currentRule()) });
     if (message?.type === 'rule-ready') respond({ url: location.href });
-    if (message?.type === 'snapshot') respond(snapshot());
+    if (message?.type === 'snapshot') respond(consent ? snapshot() : { error: '데이터 전송 동의가 필요해요.' });
     if (message?.type === 'preview-rule') {
       const parsed = siteRuleSchema.safeParse(message.rule);
       const page = parsed.success ? inspect(parsed.data) : null;

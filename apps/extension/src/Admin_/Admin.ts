@@ -1,4 +1,5 @@
 import { apiUrl } from '../config';
+import { requireConsent } from '../Consent_/Consent';
 
 const tokenKey = 'adminToken:v1';
 const installationKey = 'installationId:v1';
@@ -19,6 +20,7 @@ export async function ruleHeaders(): Promise<Record<string, string>> {
 }
 export async function hasAdminToken() { return !!(await chrome.storage.local.get(tokenKey))[tokenKey]; }
 export async function saveAdminToken(value: string) {
+  await requireConsent();
   const token = value.trim();
   if (token.length < 32 || token.length > 512 || /\s/.test(token)) throw new Error('관리자 토큰을 확인해 주세요.');
   const response = await fetch(`${apiUrl}/admin/verify`, {

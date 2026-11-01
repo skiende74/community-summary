@@ -4,6 +4,12 @@ import { isAdmin } from '../Access_/Access.js';
 import { ruleStore, type RuleStore } from './store.js';
 
 export function registerSharedRules(app: FastifyInstance, store: RuleStore = ruleStore) {
+  app.get('/site-rules/hosts', async (_request, reply) => {
+    try {
+      if (!store.hosts) throw new Error('Host catalog unavailable');
+      return { hosts: await store.hosts() };
+    } catch { return reply.code(503).send({ error: '등록 사이트 목록을 불러오지 못했습니다.' }); }
+  });
   app.post('/site-rules/lookup', async (request, reply) => {
     const parsed = ruleLookupSchema.safeParse(request.body);
     if (!parsed.success) return reply.code(400).send({ error: '게시글 URL이 올바르지 않습니다.' });

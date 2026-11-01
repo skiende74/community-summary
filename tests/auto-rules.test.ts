@@ -9,7 +9,7 @@ import type { SiteRule } from '../packages/contracts/src/index.ts';
 const common: SiteRule = { origin: 'https://auto.example', pathTemplate: '/board/{board}/{id}',
   idQuery: null, requiredQuery: [], title: 'h1', body: 'article', commentsRoot: '.comments',
   commentItem: '.row', commentText: '.text', replySelector: null };
-const data: Record<string, any> = {};
+const data: Record<string, any> = { 'dataConsent:v1': true, 'hostCatalog:v1': { hosts: ['auto.example'], at: Date.now(), retryAt: 0 } };
 let permitted = true, href = 'https://auto.example/board/park/1', fetches = 0, previews = 0;
 let scripts: any[] = [{ id: 'approved-sites', matches: ['https://auto.example/*'] }];
 Object.assign(globalThis, { chrome: {

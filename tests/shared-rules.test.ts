@@ -5,7 +5,7 @@ import type { SiteRule } from '../packages/contracts/src/index.ts';
 
 const rule: SiteRule = { origin: 'https://example.com', pathTemplate: '/board/{board}/{id}', idQuery: null,
   requiredQuery: [], title: 'h1', body: 'article', commentsRoot: '.comments', commentItem: '.row', commentText: '.text', replySelector: null };
-const data: Record<string, any> = {};
+const data: Record<string, any> = { 'dataConsent:v1': true, 'hostCatalog:v1': { hosts: ['example.com', 'missing.example', 'offline.example'], at: Date.now(), retryAt: 0 } };
 let refreshAfterSeconds: number | undefined;
 let requests = 0, failure = false, found: SiteRule[] = [rule];
 Object.assign(globalThis, { chrome: { storage: { local: {

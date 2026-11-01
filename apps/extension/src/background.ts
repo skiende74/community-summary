@@ -6,6 +6,7 @@ import { lookupCandidates, ruleRequest, rememberRule } from './Sites_/shared';
 import { refreshShared } from './Sites_/refresh';
 import { ruleHeaders } from './Admin_/Admin';
 import { readSettings } from './settings';
+import { requireConsent } from './Consent_/Consent';
 
 chrome.runtime.onInstalled.addListener(() => { void syncScripts(); });
 chrome.runtime.onStartup.addListener(() => { void syncScripts(); });
@@ -17,6 +18,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   if (!['summarize', 'generate-rule', 'save-rule', 'delete-rule', 'lookup-rule', 'check-rule', 'auto-apply'].includes(message?.type)) return;
   void (async () => {
     try {
+      await requireConsent();
       if (message.type === 'check-rule') { respond({ status: await refreshShared(sender) }); return; }
       if (message.type !== 'summarize' && !popup) throw new Error('잘못된 요청입니다.');
       if (message.type === 'auto-apply') {

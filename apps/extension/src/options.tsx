@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { readSettings, type Settings } from './settings';
 import './options.css';
 import { AdminSettings } from './Admin_/AdminSettings';
+import { ConsentGate } from './Consent_/ConsentGate';
+import { consentKey } from './Consent_/Consent';
 
 const toneExamples = { default: '서비스의 기본 말투를 따라요.', brief: '신고자를 비판하는 반응이 많음.', haeyo: '신고자를 비판하는 반응이 많아요.', formal: '신고자를 비판하는 반응이 많습니다.' };
 
@@ -43,6 +45,7 @@ function Options() {
     </section>}
     <p role="status">{status}</p>
     <AdminSettings />
+    <button onClick={() => void chrome.storage.local.set({ [consentKey]: false })}>데이터 전송 동의 철회</button>
   </main>;
 }
-createRoot(document.getElementById('root')!).render(<Options />);
+createRoot(document.getElementById('root')!).render(<ConsentGate><Options /></ConsentGate>);
