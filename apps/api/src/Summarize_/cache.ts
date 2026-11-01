@@ -1,10 +1,11 @@
+import { resolveTone } from './tone.js';
 import { createHash } from 'node:crypto';
 import type { SummaryRequest, SummaryResponse } from '@summary/contracts';
 import { model, promptVersion } from './prompt.js';
 
 const results = new Map<string, { expires: number; value: SummaryResponse }>();
 export const pending = new Map<string, Promise<SummaryResponse>>();
-export const cacheKey = ({ tone = 'haeyo', ...content }: SummaryRequest) => createHash('sha256')
+export const cacheKey = ({ tone = resolveTone(), ...content }: SummaryRequest) => createHash('sha256')
   .update(JSON.stringify([model, 'low', promptVersion, tone, content])).digest('hex');
 export function getCached(key: string) {
   const item = results.get(key);

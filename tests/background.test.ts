@@ -42,7 +42,7 @@ test('사이트 권한과 미리보기 승인 후에만 저장하고, 요약 요
   assert.deepEqual(scripts, []);
   assert.equal((await send(summarize, page)).result.summary, '테스트 요약');
   assert.equal(fetchCount, 1);
-  assert.equal(lastPayload.tone, 'haeyo');
+  assert.equal(lastPayload.tone, undefined);
   permitted = false;
   assert.ok((await send(summarize, page)).error);
   assert.equal(fetchCount, 1);

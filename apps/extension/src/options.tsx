@@ -4,7 +4,7 @@ import { readSettings, type Settings } from './settings';
 import './options.css';
 import { AdminSettings } from './Admin_/AdminSettings';
 
-const toneExamples = { brief: '신고자를 비판하는 반응이 많음.', haeyo: '신고자를 비판하는 반응이 많아요.', formal: '신고자를 비판하는 반응이 많습니다.' };
+const toneExamples = { default: '서비스의 기본 말투를 따라요.', brief: '신고자를 비판하는 반응이 많음.', haeyo: '신고자를 비판하는 반응이 많아요.', formal: '신고자를 비판하는 반응이 많습니다.' };
 
 function Options() {
   const [settings, setSettings] = useState<Settings>();
@@ -16,7 +16,7 @@ function Options() {
     setSaving(true);
     try {
       const next = { ...settings, [key]: value };
-      await chrome.storage.local.set(next);
+      await chrome.storage.local.set({ [key]: value });
       setSettings(next);
       setStatus(key === 'tone' ? '저장했어요. 새 요약이나 요약 갱신부터 선택한 말투로 보여드려요.'
         : '저장했어요. 펼침 설정은 새로 여는 게시글부터 적용돼요.');
@@ -38,7 +38,7 @@ function Options() {
         <small>기존 요약은 유지되며, 요약 갱신 시 새 말투가 적용돼요.</small></span>
         <select value={settings.tone} disabled={saving}
           onChange={e => void change('tone', e.target.value as Settings['tone'])}>
-          <option value="brief">음슴체</option><option value="haeyo">해요체 (기본)</option><option value="formal">습니다체</option>
+          <option value="default">기본 말투 따르기</option><option value="brief">음슴체</option><option value="haeyo">해요체</option><option value="formal">습니다체</option>
         </select></label>
     </section>}
     <p role="status">{status}</p>

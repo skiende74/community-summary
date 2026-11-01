@@ -68,7 +68,8 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         (!(await readRules()).some(rule => matchRule(rule, sender.url!)) ||
           !await chrome.permissions.contains({ origins: [`${new URL(sender.url!).origin}/*`] })))))
         throw new Error('등록한 게시판에서 요청해 주세요.');
-      const payload = summarize ? requestSchema.parse({ ...message.payload, tone: (await readSettings()).tone }) : ruleRequestSchema.parse(message.payload);
+      const tone = summarize ? (await readSettings()).tone : 'default';
+      const payload = summarize ? requestSchema.parse({ ...message.payload, tone: tone === 'default' ? undefined : tone }) : ruleRequestSchema.parse(message.payload);
       const response = await fetch(`${apiUrl}/${summarize ? 'summarize' : 'site-rules'}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Community-Summary': '1',
           'X-Summary-Refresh': message.refresh === true ? '1' : '0', ...(summarize ? {} : await ruleHeaders()) },

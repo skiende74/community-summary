@@ -1,3 +1,4 @@
+import { resolveTone } from './tone.js';
 import type { FastifyInstance } from 'fastify';
 import { requestSchema } from '@summary/contracts';
 import { summarize } from './llm.js';
@@ -9,7 +10,8 @@ export function registerSummarize(app: FastifyInstance) {
     if (!parsed.success) return reply.code(400).send({ error: '요약할 댓글 데이터가 올바르지 않습니다.' });
     if (!process.env.OPENAI_API_KEY)
       return reply.code(503).send({ error: '요약 서버 설정이 완료되지 않았습니다. 관리자에게 문의해 주세요.' });
-    const key = cacheKey(parsed.data);
+    const input = { ...parsed.data, tone: resolveTone(parsed.data.tone) };
+    const key = cacheKey(input);
     const cached = getCached(key);
     if (cached && request.headers['x-summary-refresh'] !== '1') return cached;
     if (!pending.has(key) && pending.size >= 2)
@@ -17,7 +19,7 @@ export function registerSummarize(app: FastifyInstance) {
     try {
       let work = pending.get(key);
       if (!work) {
-        work = summarize(parsed.data).then(value => cacheResult(key, value))
+        work = summarize(input).then(value => cacheResult(key, value))
           .finally(() => pending.delete(key));
         pending.set(key, work);
       }
