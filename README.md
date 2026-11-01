@@ -15,9 +15,9 @@
 
 ### 14초 사용법
 
-[![커뮤니티 댓글 요약 — 14초 사용법](Demo_/preview-v2.png)](Demo_/quick-start-v2.mp4)
+[![커뮤니티 댓글 요약 — 14초 사용법](Demo_/quick-start-v2.gif)](Demo_/quick-start-v2.mp4)
 
-[사용법 영상 보기 · MP4, 14초](Demo_/quick-start-v2.mp4)
+[고화질 영상 보기 · MP4, 14초](Demo_/quick-start-v2.mp4)
 
 설치가 끝난 상태를 기준으로 합니다. 영상은 공용 규칙이 등록된 사이트에서의 사용 흐름을 보여주는 예시 UI이며, 대기 시간은 단축했습니다.
 

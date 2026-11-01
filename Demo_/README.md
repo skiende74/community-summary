@@ -7,7 +7,8 @@
 - 공용 규칙이 등록된 사이트 기준이며, 규칙이 없는 경우의 맞춤 설정은 프로젝트 README에서 설명합니다.
 - 실제 화면 녹화가 아닌 예시 UI 애니메이션이며, 대기 시간은 단축했습니다.
 - 다시 만들기: Pillow, ffmpeg와 Windows 맑은 고딕이 설치된 환경에서 `python make_video_v2.py`.
-- `preview-v2.png`: README용 영상 미리보기입니다.
+- `quick-start-v2.gif`: README 자동 반복 재생용, 14초, 960×540, 12fps.
+- `preview-v2.png`: 정적 영상 미리보기입니다.
 
 ## 이전 영상
 
