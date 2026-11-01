@@ -6,7 +6,7 @@ import { allowRuleGeneration, ruleBuckets } from '../apps/api/src/Access_/RuleQu
 const id = '12345678-1234-4234-8234-123456789abc';
 test('설치별 총량과 호스트별 한도를 분리하고 포트·경로로 우회하지 못함', () => {
   const base = ruleBuckets(id, 'https://www.example.com/board/1');
-  assert.deepEqual(base.map(item => item.limit), [10, 2]);
+  assert.deepEqual(base.map(item => item.limit), [10, 10]);
   assert.deepEqual(base, ruleBuckets(id.toUpperCase(), 'https://WWW.example.com.:443/other/2'));
   assert.equal(base[0].key, ruleBuckets(id, 'https://m.example.com/1')[0].key);
   assert.notEqual(base[1].key, ruleBuckets(id, 'https://m.example.com/1')[1].key);

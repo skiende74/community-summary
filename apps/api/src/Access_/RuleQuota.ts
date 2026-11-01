@@ -5,7 +5,7 @@ import { consumeQuota, hashIdentity, type QuotaBucket } from './quota.js';
 export function ruleBuckets(installation: string, url: string): QuotaBucket[] {
   const host = new URL(url).hostname.toLowerCase().replace(/\.$/, '');
   const prefix = `rule-quota:v1:${hashIdentity(installation.toLowerCase())}`;
-  return [{ key: `${prefix}:all`, limit: 10 }, { key: `${prefix}:host:${hashIdentity(host)}`, limit: 2 }];
+  return [{ key: `${prefix}:all`, limit: 10 }, { key: `${prefix}:host:${hashIdentity(host)}`, limit: 10 }];
 }
 export async function allowRuleGeneration(request: FastifyRequest, reply: FastifyReply, url: string,
   consume: typeof consumeQuota = consumeQuota): Promise<boolean> {
@@ -24,7 +24,7 @@ export async function allowRuleGeneration(request: FastifyRequest, reply: Fastif
     if (!Number.isFinite(retryAfter) || retryAfter < 0) throw new Error('Invalid quota response');
     if (retryAfter > 0) {
       reply.header('Retry-After', String(retryAfter)).code(429).send({
-        error: `규칙 생성은 최근 24시간에 총 10회, 같은 호스트에서 2회까지 가능합니다. 약 ${Math.ceil(retryAfter / 60)}분 후 다시 시도해 주세요.`,
+        error: `규칙 생성은 최근 24시간에 총 10회, 같은 호스트에서 10회까지 가능합니다. 약 ${Math.ceil(retryAfter / 60)}분 후 다시 시도해 주세요.`,
       });
       return false;
     }
