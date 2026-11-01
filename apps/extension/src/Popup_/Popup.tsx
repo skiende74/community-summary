@@ -5,6 +5,7 @@ import { readRules, matchingRules, ruleScope, sourceKey, disabledKey, matchRule,
 import { previewRules, type Preview } from '../Sites_/preview';
 import { hasAdminToken } from '../Admin_/Admin';
 import './styles.css';
+import { hasSiteAccess, syncScripts } from '../Sites_/registration';
 import { ExtractionStatus } from './ExtractionStatus';
 import { ConsentGate } from '../Consent_/ConsentGate';
 
@@ -31,7 +32,7 @@ function Popup() {
     setTab(active);
     setAdmin(await hasAdminToken());
     if (!active?.id || !active.url?.startsWith('https:')) return;
-    const allowed = await chrome.permissions.contains({ origins: [`${new URL(active.url).origin}/*`] });
+    const allowed = await hasSiteAccess(active.url);
     setPermitted(allowed);
     if (allowed && !/^https:\/\/(www\.)?dogdrip\.net\//.test(active.url)) {
       setBusy(true);
@@ -48,7 +49,7 @@ function Popup() {
     if (local && metadata?.[ruleScope(local)]) setSource(metadata[ruleScope(local)].source === 'shared' ? '공용 규칙에서 적용' : 'AI로 새로 생성');
   })().catch(() => setStatus('현재 탭을 확인하지 못했습니다.')); }, []);
   const valid = !!tab?.id && !!tab.url?.startsWith('https://');
-  const builtin = !!tab?.url && /^https:\/\/(www\.)?dogdrip\.net\//.test(tab.url);
+  const builtin = permitted && !!tab?.url && /^https:\/\/(www\.)?dogdrip\.net\//.test(tab.url);
   const run = async (action: () => Promise<void>) => {
     setBusy(true); setStatus('');
     try { await action(); } catch (error) { setStatus(error instanceof Error ? error.message : '다시 시도해 주세요.'); }
@@ -56,8 +57,7 @@ function Popup() {
   };
   const generate = (site = false, replace = false) => run(async () => {
     if (!valid) return;
-    const origin = new URL(tab!.url!).origin;
-    if (!await chrome.permissions.contains({ origins: [`${origin}/*`] })) throw new Error('Chrome 확장 메뉴에서 이 사이트의 접근을 허용한 뒤 새로고침해 주세요.');
+    if (!await hasSiteAccess(tab!.url!)) throw new Error('Chrome 확장 메뉴에서 이 사이트의 접근을 허용한 뒤 새로고침해 주세요.');
     setPermitted(true);
     setRule(undefined); setPreview(undefined); setCandidateId(undefined); setReplaceSite(replace);
     await chrome.scripting.executeScript({ target: { tabId: tab!.id! }, files: ['content.js'] });
@@ -97,9 +97,20 @@ function Popup() {
     <header><strong>댓글 요약</strong><button className="link" onClick={() => void chrome.runtime.openOptionsPage()}>설정</button></header>
     <p className="site">{valid ? new URL(tab!.url!).hostname : 'HTTPS 게시글에서 열어 주세요.'}</p>
     {valid && (permitted || builtin) && <ExtractionStatus tabId={tab!.id!} url={tab!.url!} />}
+    {valid && !permitted && <button disabled={busy} onClick={() => {
+      const permission = chrome.permissions.request({ origins: [`${new URL(tab!.url!).origin}/*`] });
+      void run(async () => {
+        if (!await permission) { setStatus('권한을 허용하지 않았어요. 이 사이트에서는 자동 실행하지 않습니다.'); return; }
+        await syncScripts(); setPermitted(true);
+        const result = await request({ type: 'auto-apply', tabId: tab!.id, url: tab!.url });
+        setSaved(matchingRules(await readRules(), tab!.url!)[0]);
+        setStatus(result.status?.message || '사이트 접근을 허용했습니다.');
+        setFailed(result.status?.kind === 'error');
+      });
+    }}>이 사이트 허용하고 시작</button>}
     {saved && <p className="muted">{isSiteRule(saved) ? '사이트 공통 규칙' : '게시판 맞춤 규칙'}{source ? ` · ${source}` : ''}</p>}
     {builtin ? <p>이 커뮤니티는 별도 설정 없이 사용할 수 있어요.</p> : <>
-      {!saved && <p>{permitted ? '공용 규칙이 없거나 맞지 않으면 게시판 맞춤 설정을 진행해 주세요.' : '사이트 접근이 제한되어 있어요. Chrome 확장 메뉴에서 이 사이트의 접근을 허용하고 새로고침해 주세요.'}</p>}
+      {!saved && <p>{permitted ? '공용 규칙이 없거나 맞지 않으면 게시판 맞춤 설정을 진행해 주세요.' : '기본 지원 사이트 외에는 먼저 이 사이트의 접근을 허용해 주세요. 한 번 허용하면 이후 자동 적용됩니다.'}</p>}
       <p className="muted">규칙 생성 시 현재 페이지의 URL·텍스트와 정제된 HTML 구조 일부를 서버·OpenAI에 전송합니다. 공개 게시글에서 사용해 주세요.</p>
       <button disabled={!valid || !permitted || busy} onClick={() => generate()}>{saved || failed ? '이 게시판 맞춤 설정' : '이 게시판 초기 설정'}</button>
       {admin && <button className="link" disabled={!valid || !permitted || busy} onClick={() => generate(true, true)}>사이트 공통 규칙 다시 만들기 (관리자)</button>}

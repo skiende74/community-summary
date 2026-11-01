@@ -11,7 +11,7 @@ let scripts: any[] = [];
 let listener: any, installed: any, optionsOpened = 0;
 const event = { addListener() {} };
 Object.assign(globalThis, { chrome: {
-  runtime: { id: 'test', getURL: (path: string) => `chrome-extension://test/${path}`,
+  runtime: { getManifest: () => ({ content_scripts: [], host_permissions: [] }), id: 'test', getURL: (path: string) => `chrome-extension://test/${path}`,
     openOptionsPage: async () => { optionsOpened++; },
     onInstalled: { addListener(fn: any) { installed = fn; } }, onStartup: event, onMessage: { addListener(fn: any) { listener = fn; } } },
   permissions: { contains: async () => permitted, getAll: async () => ({ origins: [] }), onRemoved: event, onAdded: event },
