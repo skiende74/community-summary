@@ -1,0 +1,30 @@
+:host { all: initial; display: block; width: 100%; min-width: 0; clear: both; flex: 0 0 100%; grid-column: 1 / -1; font: 14px/1.65 system-ui, sans-serif; color: #303236; color-scheme: light; }
+* { box-sizing: border-box; }
+.panel { margin: 8px 0 12px; border: 1px solid #dce2f2; border-left: 3px solid #7185c7; border-radius: 10px; background: #f8f9fd; overflow: hidden; }
+button { font: inherit; cursor: pointer; color: inherit; border: 0; background: transparent; }
+button:focus-visible { outline: 2px solid #7185c7; outline-offset: -3px; }
+button:disabled { opacity: .5; cursor: wait; }
+header { display: flex; align-items: center; padding: 3px 5px 0 0; }
+.heading { flex: 1; min-width: 0; padding: 8px 12px; text-align: left; font-size: 12px; font-weight: 600; color: #5268a6; }
+.muted, small { color: #777980; font-size: 12px; font-weight: 400; }
+.body { padding: 0 12px 10px; }
+.summary { white-space: pre-line; overflow-wrap: anywhere; margin: 0; }
+.error { margin: 0; color: #a52b31; }
+.icon-button { flex-shrink: 0; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 6px; color: #777980; }
+.icon-button:hover:not(:disabled) { background: #e9edf8; color: #5268a6; }
+.icon { display: block; flex-shrink: 0; }
+.spinning { animation: spin 1s linear infinite; }
+.floating { position: fixed; right: 20px; bottom: 24px; z-index: 2147483647; display: flex; align-items: center; gap: 8px; background: #343538; color: #fff; border-radius: 10px; padding: 9px 13px; font-size: 13px; box-shadow: 0 3px 12px #00000020; }
+.floating:hover { background: #48494d; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinning { animation: none; } }
+@media (prefers-color-scheme: dark) {
+  :host { color: #e4e4e7; color-scheme: dark; }
+  .panel { background: #252832; border-color: #3b435b; border-left-color: #879bd8; }
+  .heading, .muted, small, .icon-button { color: #a7a7ae; }
+  .heading { color: #adbfef; }
+  .icon-button:hover:not(:disabled) { background: #343d55; color: #adbfef; }
+  .floating { background: #e4e4e7; color: #27272a; }
+  .floating:hover { background: #fafafa; }
+  .error { color: #ffb4b4; }
+}

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3, "name": "커뮤니티 댓글 요약", "version": "0.1.0",
+  "description": "개드립의 현재 로드된 텍스트 댓글을 1~4줄로 요약합니다.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://community-summary-api.vercel.app/*", "http://127.0.0.1:4318/*"],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{
+    "matches": ["https://www.dogdrip.net/*", "https://dogdrip.net/*"],
+    "js": ["content.js"], "run_at": "document_idle"
+  }],
+  "options_ui": { "page": "options.html", "open_in_tab": true },
+  "action": { "default_title": "댓글 요약 설정" }
+}

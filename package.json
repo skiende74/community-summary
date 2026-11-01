@@ -1,0 +1,11 @@
+{
+  "name": "community-summary", "private": true, "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:api": "npm run build:contracts && npm run dev -w @summary/api",
+    "build:contracts": "tsc -p packages/contracts",
+    "build": "npm run build:contracts && npm run build -w @summary/extension",
+    "typecheck": "tsc -p apps/api && tsc -p apps/extension"
+  },
+  "devDependencies": { "typescript": "^5.9.0", "@types/node": "^22.0.0" }
+}

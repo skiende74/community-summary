@@ -1,0 +1,9 @@
+{
+  "name": "@summary/extension", "private": true, "type": "module",
+  "scripts": { "build": "vite build && vite build --mode content && vite build --mode background" },
+  "dependencies": { "@summary/contracts": "*", "react": "^19.0.0", "react-dom": "^19.0.0" },
+  "devDependencies": {
+    "vite": "^6.0.0", "@types/chrome": "^0.1.0",
+    "@types/react": "^19.0.0", "@types/react-dom": "^19.0.0"
+  }
+}
